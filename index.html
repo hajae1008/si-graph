@@ -246,7 +246,8 @@
       토큰은 <b>이 브라우저에만</b> 저장되고 어디로도 전송되지 않습니다.</p>
 
     <label>GITHUB TOKEN · gist 권한만</label>
-    <input id="s-token" type="password" placeholder="ghp_… / github_pat_…" autocomplete="off">
+    <input id="s-token" type="password" placeholder="ghp_… / github_pat_…"
+           autocomplete="new-password" data-lpignore="true" data-1p-ignore spellcheck="false">
 
     <label>GIST ID · 없으면 비워두고 만들기</label>
     <input id="s-gist" type="text" placeholder="비워두면 새로 만듭니다" autocomplete="off">
@@ -255,6 +256,7 @@
 Classic 토큰이면 <b>gist</b> 하나만 체크하세요.</div>
 
     <div class="acts">
+      <button class="mono-btn" id="setup-check">토큰 확인</button>
       <button class="mono-btn" id="setup-go">저장하고 연결</button>
       <button class="mono-btn" id="setup-new">새 Gist 만들기</button>
       <button class="mono-btn" id="setup-close">닫기</button>
@@ -496,6 +498,7 @@ function initEdit(){
   $("#setup-close").addEventListener("click",()=>setupEl.classList.remove("on"));
   $("#setup-go").addEventListener("click",connect);
   $("#setup-new").addEventListener("click",createGist);
+  $("#setup-check").addEventListener("click",checkToken);
 
   addEventListener("beforeunload",e=>{
     if(dirty){ e.preventDefault(); e.returnValue=""; }
@@ -564,8 +567,62 @@ async function gh(path,method,body){
     headers:{Authorization:"Bearer "+c.tok, Accept:"application/vnd.github+json"},
     body: body?JSON.stringify(body):undefined
   });
-  if(!r.ok) throw new Error(`GitHub ${r.status} · ${r.status===401?"토큰이 잘못됐습니다":r.statusText}`);
+  if(!r.ok){
+    const why = {
+      401:"토큰을 GitHub이 못 알아봅니다 · 오타·만료·취소 중 하나입니다",
+      403:"권한이 막혔습니다 · 토큰에 gist 권한이 있는지 보세요",
+      404:"기스트를 못 찾았습니다 · 토큰이 기스트 주인 계정의 것인지 보세요",
+    }[r.status] || r.statusText;
+    throw new Error(`GitHub ${r.status} · ${why}`);
+  }
   return r.json();
+}
+
+function note(html){ $("#s-note").innerHTML = html; }
+
+/* 401은 원인이 여럿이라 짐작으로는 못 좁힌다.
+   토큰으로 /user 를 직접 찔러서 주인과 권한을 받아온다. */
+async function checkToken(){
+  const t = $("#s-token").value.trim() || cfg().tok;
+  if(!t){ note("토큰을 먼저 넣어주세요."); return; }
+  note("확인 중…");
+  let r;
+  try{
+    r = await fetch("https://api.github.com/user",{
+      headers:{Authorization:"Bearer "+t, Accept:"application/vnd.github+json"}
+    });
+  }catch(e){ note("GitHub에 닿지 못했습니다 · 네트워크를 보세요."); return; }
+
+  if(r.status === 401){
+    note(`<b>이 토큰을 GitHub이 모릅니다.</b>
+값이 잘못됐거나, 만료됐거나, 취소된 토큰입니다.
+
+· 앞뒤가 잘리지 않고 통째로 붙었는지
+· 토큰 <b>이름</b>이 아니라 <b>값</b>을 붙였는지
+· 만료일이 지나지 않았는지
+
+토큰 값은 만들 때 한 번만 보입니다. 확실치 않으면
+github.com/settings/tokens 에서 새로 만드는 편이 빠릅니다.`);
+    return;
+  }
+  if(!r.ok){ note(`확인 실패 · GitHub ${r.status}`); return; }
+
+  const u = await r.json();
+  const raw = r.headers.get("x-oauth-scopes");
+  const scopes = (raw||"").split(",").map(x=>x.trim()).filter(Boolean);
+  const lines = [`토큰 주인 : <b>${u.login}</b>`];
+
+  if(GIST_USER && u.login !== GIST_USER)
+    lines.push(`⚠ 기스트 주인은 <b>${GIST_USER}</b> 입니다. 계정이 다르면 저장할 수 없습니다.`);
+
+  if(raw === null)
+    lines.push("세분화(fine-grained) 토큰이라 권한 목록을 읽을 수 없습니다.\nAccount permissions → <b>Gists</b> 가 Read and write 여야 합니다.");
+  else if(scopes.includes("gist"))
+    lines.push("권한 : <b>gist ✓</b>");
+  else
+    lines.push(`⚠ <b>gist 권한이 없습니다.</b> 지금 권한: ${scopes.join(", ")||"(없음)"}\n토큰을 새로 만들면서 gist 를 체크하세요.`);
+
+  note(lines.join("\n"));
 }
 
 async function createGist(){
@@ -581,9 +638,9 @@ async function createGist(){
     localStorage.setItem(LS.gist,j.id);
     localStorage.setItem(LS.user,j.owner.login);
     $("#s-gist").value = j.id;
-    $("#s-note").innerHTML =
+    note(
       `만들었습니다. 배포본에서도 보이려면 <b>index.html 맨 위</b> 두 줄을 이렇게 바꾸세요.\n\n` +
-      `<b>GIST_USER = "${j.owner.login}"</b>\n<b>GIST_ID   = "${j.id}"</b>`;
+      `<b>GIST_USER = "${j.owner.login}"</b>\n<b>GIST_ID   = "${j.id}"</b>`);
     say("Gist 생성됨");
   }catch(e){ say(e.message,true); }
 }
