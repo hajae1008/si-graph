@@ -108,9 +108,6 @@
   #editbtn.show{display:block}
   body.edit #editbtn{display:none}
   body.edit #done{display:block}
-  #hint{position:absolute;right:var(--pad);bottom:var(--pad);
-    font-family:var(--mono);font-size:10px;letter-spacing:.18em;
-    color:rgba(var(--ink),.28)}
 
   /* ── 편집 툴바 ─────────────────────────────── */
   #bar{
@@ -119,7 +116,6 @@
     justify-content:flex-end;
   }
   body.edit #bar{display:flex}
-  body.edit #hint{display:none}
   .barfld{display:flex;align-items:center;gap:8px;
     font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;
     color:rgba(var(--ink),.38)}
@@ -144,7 +140,6 @@
       top:auto;bottom:calc(var(--pad) + 40px);transform:none}
     #p-body,#e-body{font-size:13.5px;line-height:1.7}
     #e-body{min-height:80px}
-    #hint{display:none}
     #bar{bottom:auto;top:var(--pad);left:var(--pad)}
     #kicker{opacity:0}
   }
@@ -154,7 +149,7 @@
 
 <div id="scroller">
   <div id="stage">
-    <div id="kicker">LIFE GRAPH</div>
+    <div id="kicker"></div>
 
     <div id="lines"></div>
 
@@ -187,7 +182,6 @@
 
     <div class="card" id="hero">
       <h1></h1>
-      <p></p>
     </div>
 
     <div class="card" id="outro">
@@ -197,7 +191,6 @@
 
     <button class="mono-btn" id="editbtn">수정하기 →</button>
     <button class="mono-btn" id="done">← 편집 완료</button>
-    <div id="hint">SCROLL ↓</div>
   </div>
 </div>
 
@@ -221,7 +214,6 @@
    ══════════════════════════════════════════════════════════════ */
 let D = {
   name: "99 박주연",
-  tagline: "A LIFE IN CURVES",
   birth: "",                  // 예: "1999-10-08". 비우면 나이 없이 연도만 나온다
   events: [
     { year:2007, label:"동생이 태어났다", score: 0, body:"학교가 끝나고 정문으로 나갔더니 아빠가 나를 기다리고 있었다. 아빠 손을 잡고 병원에 갔더니 쭈글쭈글한 아기가 있었다." },
@@ -252,7 +244,7 @@ const $ = s => document.querySelector(s);
 const scroller=$("#scroller"), linesEl=$("#lines"), panelEl=$("#panel");
 const heroEl=$("#hero"), outroEl=$("#outro");
 const pMeta=$("#p-meta"), pBody=$("#p-body");
-const hintEl=$("#hint"), editBtn=$("#editbtn"), statusEl=$("#status");
+const editBtn=$("#editbtn"), statusEl=$("#status");
 
 /* 데이터가 코드 안에 있으므로 배포본에서 고쳐봐야 갈 곳이 없다.
    편집은 내 컴퓨터에서만 연다. */
@@ -292,13 +284,15 @@ const ageLabel = y => { const a = ageAt(y); return a===null ? "" : `  ·  ${a}�
 function build(){
   EV = D.events;
   heroEl.querySelector("h1").textContent = D.name || "";
-  heroEl.querySelector("p").textContent  = D.tagline || "";
   linesEl.innerHTML = "";
   nodes = EV.map((e,i)=>{
     const el = document.createElement("div");
     el.className = "ev";
     el.textContent = e.label;
-    el.addEventListener("click", ()=>{ if(i!==idx) jumpTo(i); });
+    // 맨 위에서는 초점이 이미 0번에 있어 첫 글자를 눌러도 안 움직였다.
+    // 보기 모드에서는 항상 이동한다. 편집 중일 때만, 지금 고치는 글자를
+    // 누른 경우를 빼고 이동한다(커서를 놓으려는 클릭이므로).
+    el.addEventListener("click", ()=>{ if(!EDIT || i!==idx) jumpTo(i); });
     if (EDIT){
       el.addEventListener("input", ()=>{
         EV[i].label = el.textContent.replace(/\n/g," ").trim();
@@ -369,7 +363,6 @@ function update(){
   const heroA  = clamp(-(p+0.55)/0.7,0,1);
   const outroA = clamp((p-(EV.length-1)-0.35)/0.6,0,1);
   heroEl.style.opacity = heroA;
-  hintEl.style.opacity = heroA;
   outroEl.style.opacity = outroA;
   // 투명한 카드가 화면 전체를 덮고 클릭을 삼키지 않도록
   heroEl.style.pointerEvents  = (EDIT && heroA  > 0.5) ? "auto" : "none";
@@ -393,7 +386,15 @@ function focus(i){
   }
 }
 
-const jumpTo = i => scrollTo({top:(i+1.75)*L.step, behavior:"smooth"});
+/* 부드러운 스크롤을 조용히 무시하는 환경이 있다.
+   잠시 뒤에도 제자리면 그냥 옮긴다. 클릭이 먹통이 되는 것보다 낫다. */
+function jumpTo(i){
+  const top = (i+1.75)*L.step, from = scrollY;
+  scrollTo({top, behavior:"smooth"});
+  setTimeout(()=>{
+    if(scrollY === from && Math.abs(top-from) > 2) scrollTo({top, behavior:"instant"});
+  }, 150);
+}
 
 /* ── 편집 ─────────────────────────────────────────────────── */
 function refreshAges(){
@@ -414,7 +415,7 @@ function say(m){ statusEl.textContent = m; }
 
 function initEdit(){
   document.body.classList.add("edit");
-  $("#kicker").textContent = "LIFE GRAPH · 편집 중";
+  $("#kicker").textContent = "편집 중";
 
   // 지난번에 고치다 만 게 있으면 이어서 한다
   try{
@@ -425,11 +426,9 @@ function initEdit(){
     }
   }catch(e){}
 
-  const h1 = heroEl.querySelector("h1"), hp = heroEl.querySelector("p");
+  const h1 = heroEl.querySelector("h1");
   h1.setAttribute("contenteditable","plaintext-only");
-  hp.setAttribute("contenteditable","plaintext-only");
   h1.addEventListener("input",()=>{ D.name=h1.textContent.trim(); markDirty(); });
-  hp.addEventListener("input",()=>{ D.tagline=hp.textContent.trim(); markDirty(); });
 
   $("#e-birth").addEventListener("input",e=>{
     D.birth = e.target.value;
