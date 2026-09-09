@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>인생 그래프</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css">
+<style>
+  :root{
+    --bg:#FFFFFF;
+    --ink:17,17,17;
+    --pad:clamp(20px,4vw,56px);
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;
+    --sans:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{background:var(--bg)}
+  body{
+    margin:0;font-family:var(--sans);color:rgb(var(--ink));
+    -webkit-font-smoothing:antialiased;overscroll-behavior-y:none;
+  }
+  #stage{position:sticky;top:0;height:100vh;height:100dvh;overflow:hidden}
+
+  /* ── 큰 타이포 스택 ────────────────────────── */
+  #lines{position:absolute;inset:0;pointer-events:none}
+  .ev{
+    position:absolute;right:var(--pad);top:0;white-space:nowrap;
+    font-weight:700;letter-spacing:-.035em;line-height:1;
+    transform-origin:100% 50%;will-change:transform,color;
+    pointer-events:auto;cursor:pointer;outline:none;
+  }
+  body.edit .ev[contenteditable]{cursor:text}
+  body.edit .ev[contenteditable]:focus{
+    box-shadow:0 2px 0 rgba(var(--ink),.22);
+  }
+
+  /* ── 왼쪽 패널 ─────────────────────────────── */
+  #panel{
+    position:absolute;left:var(--pad);top:50%;transform:translateY(-50%);
+    width:min(330px,32vw);will-change:opacity;
+  }
+  #p-meta{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
+    color:rgba(var(--ink),.45);margin-bottom:14px}
+  #p-body{font-size:14.5px;line-height:1.75;color:rgba(var(--ink),.62);
+    letter-spacing:-.01em;margin:0;white-space:pre-wrap}
+
+  /* ── 왼쪽 패널 · 편집 모드 ─────────────────── */
+  #p-edit{display:none}
+  body.edit #p-view{display:none}
+  body.edit #p-edit{display:block}
+  .fld{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;
+    color:rgba(var(--ink),.34);flex:0 0 34px}
+  #e-year{
+    font-family:var(--mono);font-size:11px;letter-spacing:.12em;width:64px;
+    background:none;border:0;border-bottom:1px solid rgba(var(--ink),.16);
+    color:rgb(var(--ink));padding:3px 0;outline:none;
+  }
+  #e-age{font-family:var(--mono);font-size:10.5px;color:rgba(var(--ink),.4)}
+  #e-score{
+    -webkit-appearance:none;appearance:none;flex:1;height:16px;
+    background:none;outline:none;cursor:ew-resize;
+  }
+  #e-score::-webkit-slider-runnable-track{height:1px;background:rgba(var(--ink),.18)}
+  #e-score::-webkit-slider-thumb{
+    -webkit-appearance:none;width:9px;height:9px;border-radius:50%;
+    background:rgb(var(--ink));margin-top:-4px;
+  }
+  #e-score::-moz-range-track{height:1px;background:rgba(var(--ink),.18)}
+  #e-score::-moz-range-thumb{width:9px;height:9px;border:0;border-radius:50%;
+    background:rgb(var(--ink))}
+  #e-sv{font-family:var(--mono);font-size:10.5px;color:rgba(var(--ink),.4);
+    flex:0 0 22px;text-align:right}
+  #e-body{
+    width:100%;min-height:112px;resize:vertical;
+    font-family:var(--sans);font-size:14.5px;line-height:1.75;
+    letter-spacing:-.01em;color:rgba(var(--ink),.75);
+    background:none;border:0;border-left:1px solid rgba(var(--ink),.14);
+    padding:2px 0 2px 12px;outline:none;
+  }
+  #e-body::placeholder{color:rgba(var(--ink),.25)}
+  .acts{display:flex;gap:16px;margin-top:16px;flex-wrap:wrap}
+  .mono-btn{
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+    background:none;border:0;padding:4px 0;cursor:pointer;
+    color:rgba(var(--ink),.38);
+  }
+  .mono-btn:hover{color:rgb(var(--ink))}
+  .mono-btn.danger:hover{color:#C8352E}
+
+  /* ── 히어로 / 아웃트로 ─────────────────────── */
+  .card{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    justify-content:center;align-items:flex-end;
+    padding:0 var(--pad);text-align:right;pointer-events:none;
+  }
+  .card h1{margin:0;font-size:clamp(44px,11vw,140px);font-weight:700;
+    letter-spacing:-.045em;line-height:.92;outline:none}
+  .card p{margin:18px 0 0;font-family:var(--mono);font-size:11px;
+    letter-spacing:.16em;color:rgba(var(--ink),.5);outline:none}
+  body.edit .card [contenteditable]:focus{box-shadow:0 2px 0 rgba(var(--ink),.22)}
+
+  /* ── 잔물건 ────────────────────────────────── */
+  #kicker{position:absolute;left:var(--pad);top:var(--pad);
+    font-family:var(--mono);font-size:10px;letter-spacing:.2em;
+    color:rgba(var(--ink),.34)}
+  #curve{position:absolute;inset:0;pointer-events:none;opacity:0;
+    transition:opacity .5s ease}
+  #curve.on{opacity:1}
+  #gbtn{position:absolute;left:var(--pad);bottom:var(--pad)}
+  #gbtn.on{color:rgb(var(--ink))}
+  #done{
+    position:absolute;left:var(--pad);bottom:var(--pad);
+    display:none;color:rgb(var(--ink));
+  }
+  body.edit #gbtn{display:none}
+  body.edit #done{display:block}
+  #hint{position:absolute;right:var(--pad);bottom:var(--pad);
+    font-family:var(--mono);font-size:10px;letter-spacing:.18em;
+    color:rgba(var(--ink),.28)}
+
+  /* ── 편집 툴바 ─────────────────────────────── */
+  #bar{
+    position:fixed;right:var(--pad);bottom:var(--pad);z-index:40;
+    display:none;align-items:center;gap:18px;
+  }
+  body.edit #bar{display:flex}
+  body.edit #hint{display:none}
+  #status{font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+    color:rgba(var(--ink),.38)}
+  #status.err{color:#C8352E}
+  #save{
+    font-family:var(--mono);font-size:10px;letter-spacing:.18em;
+    background:rgb(var(--ink));color:#fff;border:0;border-radius:999px;
+    padding:11px 22px;cursor:pointer;
+  }
+  #save:disabled{opacity:.35;cursor:default}
+  .barfld{display:flex;align-items:center;gap:8px;
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;
+    color:rgba(var(--ink),.38)}
+  #e-birth{
+    font-family:var(--mono);font-size:10.5px;
+    background:none;border:0;border-bottom:1px solid rgba(var(--ink),.16);
+    color:rgb(var(--ink));padding:3px 0;outline:none;
+  }
+  #e-birth:focus{border-bottom-color:rgb(var(--ink))}
+  #save.dirty::after{content:" •"}
+
+  /* ── 설정(토큰) 시트 ───────────────────────── */
+  #setup{
+    position:fixed;inset:0;z-index:60;background:rgba(255,255,255,.97);
+    display:none;flex-direction:column;justify-content:center;
+    padding:var(--pad);
+  }
+  #setup.on{display:flex}
+  .sheet{width:min(520px,100%);margin:0 auto}
+  .sheet h2{margin:0 0 6px;font-size:26px;font-weight:700;letter-spacing:-.03em}
+  .sheet .sub{margin:0 0 26px;font-size:13.5px;line-height:1.7;
+    color:rgba(var(--ink),.55)}
+  .sheet label{display:block;font-family:var(--mono);font-size:9.5px;
+    letter-spacing:.16em;color:rgba(var(--ink),.4);margin:18px 0 7px}
+  .sheet input{
+    width:100%;font-family:var(--mono);font-size:12px;
+    background:none;border:0;border-bottom:1px solid rgba(var(--ink),.18);
+    color:rgb(var(--ink));padding:7px 0;outline:none;
+  }
+  .sheet input:focus{border-bottom-color:rgb(var(--ink))}
+  .note{margin-top:22px;font-size:12px;line-height:1.75;
+    color:rgba(var(--ink),.45);white-space:pre-wrap}
+  .note b{color:rgba(var(--ink),.8);font-weight:600}
+  .sheet .acts{margin-top:26px;gap:22px}
+  #setup-go{background:rgb(var(--ink));color:#fff;border-radius:999px;
+    padding:11px 22px}
+  #setup-go:hover{color:#fff}
+
+  /* ── 모바일 ────────────────────────────────── */
+  @media (max-width:719px){
+    #panel{left:var(--pad);right:var(--pad);width:auto;
+      top:auto;bottom:calc(var(--pad) + 40px);transform:none}
+    #p-body,#e-body{font-size:13.5px;line-height:1.7}
+    #e-body{min-height:80px}
+    #hint{display:none}
+    #bar{bottom:auto;top:var(--pad)}
+    #kicker{opacity:0}
+  }
+</style>
+</head>
+<body>
+
+<div id="scroller">
+  <div id="stage">
+    <div id="kicker">LIFE GRAPH</div>
+
+    <svg id="curve"><path id="curve-path" fill="none"
+      stroke="rgba(17,17,17,.28)" stroke-width="1.25"/></svg>
+
+    <div id="lines"></div>
+
+    <aside id="panel">
+      <div id="p-view">
+        <div id="p-meta"></div>
+        <p id="p-body"></p>
+      </div>
+
+      <div id="p-edit">
+        <div class="fld">
+          <span class="lbl">YEAR</span>
+          <input id="e-year" type="number" inputmode="numeric">
+          <span id="e-age"></span>
+        </div>
+        <div class="fld">
+          <span class="lbl">HIGH</span>
+          <input id="e-score" type="range" min="-5" max="5" step="1">
+          <span id="e-sv"></span>
+        </div>
+        <textarea id="e-body" placeholder="그때의 이야기를 두세 문장으로."></textarea>
+        <div class="acts">
+          <button class="mono-btn" data-act="add">+ 아래에 추가</button>
+          <button class="mono-btn" data-act="sort">연도순</button>
+          <button class="mono-btn danger" data-act="del">삭제</button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="card" id="hero">
+      <h1></h1>
+      <p></p>
+    </div>
+
+    <div class="card" id="outro">
+      <h1>아직 진행 중</h1>
+      <p>THE CURVE CONTINUES</p>
+    </div>
+
+    <button class="mono-btn" id="gbtn">그래프 보기</button>
+    <button class="mono-btn" id="done">← 편집 완료</button>
+    <div id="hint">SCROLL ↓</div>
+  </div>
+</div>
+
+<div id="bar">
+  <label class="barfld"><span>BORN</span><input id="e-birth" type="date"></label>
+  <span id="status"></span>
+  <button class="mono-btn" id="setup-open">설정</button>
+  <button id="save">저장</button>
+</div>
+
+<div id="setup">
+  <div class="sheet">
+    <h2>저장소 연결</h2>
+    <p class="sub">저장한 내용을 누구나 볼 수 있게 하려면 GitHub Gist 하나에 담습니다.
+      토큰은 <b>이 브라우저에만</b> 저장되고 어디로도 전송되지 않습니다.</p>
+
+    <label>GITHUB TOKEN · gist 권한만</label>
+    <input id="s-token" type="password" placeholder="ghp_… / github_pat_…" autocomplete="off">
+
+    <label>GIST ID · 없으면 비워두고 만들기</label>
+    <input id="s-gist" type="text" placeholder="비워두면 새로 만듭니다" autocomplete="off">
+
+    <div class="note" id="s-note">토큰 만들기 → github.com/settings/tokens
+Classic 토큰이면 <b>gist</b> 하나만 체크하세요.</div>
+
+    <div class="acts">
+      <button class="mono-btn" id="setup-go">저장하고 연결</button>
+      <button class="mono-btn" id="setup-new">새 Gist 만들기</button>
+      <button class="mono-btn" id="setup-close">닫기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   배포용 설정 — 방문자는 이 두 값으로 데이터를 읽어온다.
+   편집 모드에서 Gist를 처음 만들면 화면이 값을 알려주니
+   그때 여기 한 번만 붙여넣고 배포하면 끝이다.
+   ══════════════════════════════════════════════════════════════ */
+let GIST_USER = "hajae1008";                             // 깃허브 아이디
+let GIST_ID   = "54be24a92b8c7f60818f16b1b3e74831";      // Gist ID
+const GIST_FILE = "life.json";
+
+/* 아직 Gist가 없을 때 쓰이는 씨앗 데이터 (예시다. 갈아끼워라) */
+const SEED = {
+  name: "주연",
+  tagline: "A LIFE IN CURVES",
+  birth: "1999-10-08",
+  events: [
+    { year:1999, label:"시작",    score: 0, body:"모든 그래프는 0에서 출발한다." },
+    { year:2009, label:"전학",    score:-1, body:"교실 문을 여는 게 매일 조금씩 무서웠다.\n그때 처음으로 혼자 있는 법을 배웠다." },
+    { year:2014, label:"첫 무대",  score: 3, body:"손이 떨렸는데 이상하게 하나도 안 무서웠다.\n끝나고 나서야 다리에 힘이 풀렸다." },
+    { year:2017, label:"고3",     score:-2, body:"매일이 똑같았고, 똑같은 게 제일 힘들었다." },
+    { year:2018, label:"재수",    score:-4, body:"다들 앞으로 가는데 나만 멈춰 있는 것 같았다.\n그해 겨울은 유난히 길었다." },
+    { year:2019, label:"합격",    score: 4, body:"문자를 세 번 읽고 나서야 실감이 났다." },
+    { year:2021, label:"휴학",    score: 1, body:"아무것도 안 하기로 한 일 년.\n결과적으로 제일 많이 배운 해가 됐다." },
+    { year:2022, label:"첫 회사",  score: 2, body:"내 이름이 적힌 명함을 한참 들여다봤다." },
+    { year:2023, label:"번아웃",   score:-4, body:"잘하고 싶은 마음이 나를 갉아먹는 걸 그때는 몰랐다." },
+    { year:2024, label:"퇴사",    score:-1, body:"무섭기도 하고 후련하기도 했다.\n둘 다 진심이었다." },
+    { year:2025, label:"다시",    score: 3, body:"이번엔 속도가 아니라 방향을 먼저 정했다." },
+    { year:2026, label:"지금",    score: 4, body:"여기까지 온 게 우연이 아니었다는 걸 이제는 안다." },
+  ]
+};
+
+/* ═════════════════════════════════════════════════════════════ */
+
+const $ = s => document.querySelector(s);
+const scroller=$("#scroller"), linesEl=$("#lines"), panelEl=$("#panel");
+const heroEl=$("#hero"), outroEl=$("#outro");
+const pMeta=$("#p-meta"), pBody=$("#p-body");
+const curveEl=$("#curve"), curvePath=$("#curve-path");
+const gbtn=$("#gbtn"), hintEl=$("#hint"), barEl=$("#bar");
+const saveBtn=$("#save"), statusEl=$("#status"), setupEl=$("#setup");
+
+const EDIT = new URLSearchParams(location.search).has("edit");
+const LS = { tok:"lg.token", gist:"lg.gist", user:"lg.user" };
+
+let D = JSON.parse(JSON.stringify(SEED));
+let EV = D.events;
+let nodes = [], L = {}, idx = -1, graphOn = false, dirty = false;
+
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const ease=t=>1-Math.pow(1-t,2.4);
+
+/* 생년월일. 옛 데이터(birthYear만 있는 것)도 받아준다. */
+function birthDate(){
+  const raw = D.birth || (D.birthYear ? D.birthYear+"-01-01" : "");
+  const d = raw ? new Date(raw+"T00:00:00") : null;
+  return d && !isNaN(d) ? d : null;
+}
+
+/* 그 해의 만 나이.
+   사건에는 연도만 있으므로 '그 해 말일'과 '오늘' 중 이른 쪽을 기준으로 센다.
+   지난 해는 생일이 지난 나이가, 올해는 오늘 기준 실제 나이가 나온다. */
+function ageAt(year){
+  const b = birthDate(); if(!b) return null;
+  const now = new Date(), end = new Date(year,11,31);
+  const at = end < now ? end : now;
+  if (at < b) return null;                     // 태어나기 전
+  let a = at.getFullYear() - b.getFullYear();
+  const m = at.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && at.getDate() < b.getDate())) a--;
+  return a;
+}
+const ageLabel = y => { const a = ageAt(y); return a===null ? "" : `  ·  ${a}세`; };
+
+/* ── 렌더 ─────────────────────────────────────────────────── */
+function build(){
+  EV = D.events;
+  heroEl.querySelector("h1").textContent = D.name || "";
+  heroEl.querySelector("p").textContent  = D.tagline || "";
+  linesEl.innerHTML = "";
+  nodes = EV.map((e,i)=>{
+    const el = document.createElement("div");
+    el.className = "ev";
+    el.textContent = e.label;
+    el.addEventListener("click", ()=>{ if(i!==idx) jumpTo(i); });
+    if (EDIT){
+      el.addEventListener("input", ()=>{
+        EV[i].label = el.textContent.replace(/\n/g," ").trim();
+        markDirty(); fit(el);
+      });
+      el.addEventListener("keydown", ev=>{
+        if(ev.key==="Enter"){ ev.preventDefault(); el.blur(); }
+      });
+    }
+    linesEl.appendChild(el);
+    return el;
+  });
+  idx = -1;
+  if(EDIT){
+    // toISOString()을 거치면 UTC로 넘어가며 하루가 밀린다. 문자열을 그대로 쓴다.
+    $("#e-birth").value = /^\d{4}-\d{2}-\d{2}$/.test(D.birth||"") ? D.birth
+      : (D.birthYear ? D.birthYear+"-01-01" : "");
+  }
+  layout();
+}
+
+function fit(el){
+  el.style.fontSize = L.fs + "px";
+  const nat = el.offsetWidth;
+  if (nat > L.avail) el.style.fontSize = (L.fs * L.avail / nat) + "px";
+}
+
+function layout(){
+  const w=innerWidth, h=innerHeight, narrow = w<720;
+  L.step = narrow?250:330;
+  L.fs   = clamp(w*(narrow?.105:.076),30,96);
+  L.gap  = L.fs*1.12;
+  L.pad  = parseFloat(getComputedStyle(document.documentElement)
+             .getPropertyValue("--pad"))||32;
+  L.maxOff = Math.min(w*(narrow?.22:.19),250);
+  L.axis = narrow ? h*0.38 : h*0.50;
+  const panelBlock = narrow ? 0 : Math.min(330,w*.32)+L.pad+40;
+  L.avail = w - L.pad - L.maxOff - panelBlock - 12;
+
+  nodes.forEach(fit);
+  scroller.style.height = ((EV.length + 2.2)*L.step + h) + "px";
+  curveEl.setAttribute("viewBox",`0 0 ${w} ${h}`);
+  curveEl.setAttribute("width",w); curveEl.setAttribute("height",h);
+  update();
+}
+
+const offsetOf = s => (1 - (clamp(s,-5,5)+5)/10) * L.maxOff;
+
+function update(){
+  const p = scrollY/L.step - 1.75;
+  const pts = [];
+
+  for(let i=0;i<nodes.length;i++){
+    const d=Math.abs(i-p), y=L.axis+(i-p)*L.gap, el=nodes[i];
+    if(y < -L.gap*2 || y > innerHeight+L.gap*2 || d>8){
+      el.style.visibility="hidden"; continue;
+    }
+    el.style.visibility="visible";
+    el.style.transform=`translate3d(${-offsetOf(EV[i].score)}px,${y-L.fs*0.62}px,0)`;
+    const near=ease(clamp(1-d,0,1)), far=clamp(1-d/4.6,0,1);
+    el.style.color=`rgba(var(--ink),${(0.10+0.90*near)*far})`;
+    pts.push([innerWidth-L.pad-offsetOf(EV[i].score), y]);
+  }
+
+  const ni = clamp(Math.round(p),0,EV.length-1);
+  if(ni!==idx) focus(ni);
+
+  const near = 1 - clamp(Math.abs(p-Math.round(p))*2.3,0,1);
+  panelEl.style.opacity = EDIT ? 1
+    : ((p>-0.5 && p<EV.length-0.5) ? near : 0);
+
+  const heroA  = clamp(-(p+0.55)/0.7,0,1);
+  const outroA = clamp((p-(EV.length-1)-0.35)/0.6,0,1);
+  heroEl.style.opacity = heroA;
+  hintEl.style.opacity = heroA;
+  outroEl.style.opacity = outroA;
+  // 투명한 카드가 화면 전체를 덮고 클릭을 삼키지 않도록
+  heroEl.style.pointerEvents  = (EDIT && heroA  > 0.5) ? "auto" : "none";
+  outroEl.style.pointerEvents = (EDIT && outroA > 0.5) ? "auto" : "none";
+
+  if(graphOn) drawCurve(pts);
+}
+
+/* 초점이 바뀔 때만 패널·편집 대상을 갈아끼운다 */
+function focus(i){
+  if(idx>=0 && nodes[idx]) nodes[idx].removeAttribute("contenteditable");
+  idx = i;
+  const e = EV[i]; if(!e) return;
+  pMeta.textContent = e.year + ageLabel(e.year);
+  pBody.textContent = e.body || "";
+  if(EDIT){
+    nodes[i].setAttribute("contenteditable","plaintext-only");
+    $("#e-year").value = e.year;
+    $("#e-age").textContent = ageLabel(e.year).replace(/^\s*·\s*/,"");
+    $("#e-score").value = e.score;
+    $("#e-sv").textContent = (e.score>0?"+":"") + e.score;
+    $("#e-body").value = e.body || "";
+  }
+}
+
+function drawCurve(pts){
+  if(pts.length<2){ curvePath.setAttribute("d",""); return; }
+  let d=`M${pts[0][0]},${pts[0][1]}`;
+  for(let i=0;i<pts.length-1;i++){
+    const [x0,y0]=pts[i],[x1,y1]=pts[i+1], my=(y0+y1)/2;
+    d+=` C${x0},${my} ${x1},${my} ${x1},${y1}`;
+  }
+  curvePath.setAttribute("d",d);
+}
+
+const jumpTo = i => scrollTo({top:(i+1.75)*L.step, behavior:"smooth"});
+
+/* ── 편집 ─────────────────────────────────────────────────── */
+function refreshAges(){
+  const e = EV[idx]; if(!e) return;
+  pMeta.textContent = e.year + ageLabel(e.year);
+  const f = $("#e-age"); if(f) f.textContent = ageLabel(e.year).replace(/^\s*·\s*/,"");
+}
+
+function markDirty(){
+  dirty = true;
+  saveBtn.classList.add("dirty");
+  statusEl.textContent = "";
+  statusEl.classList.remove("err");
+}
+
+function initEdit(){
+  document.body.classList.add("edit");
+  $("#kicker").textContent = "LIFE GRAPH · 편집 중";
+
+  const h1 = heroEl.querySelector("h1"), hp = heroEl.querySelector("p");
+  h1.setAttribute("contenteditable","plaintext-only");
+  hp.setAttribute("contenteditable","plaintext-only");
+  h1.addEventListener("input",()=>{ D.name=h1.textContent.trim(); markDirty(); });
+  hp.addEventListener("input",()=>{ D.tagline=hp.textContent.trim(); markDirty(); });
+
+  $("#e-birth").addEventListener("input",e=>{
+    D.birth = e.target.value;
+    delete D.birthYear;                 // 연도만 있던 옛 값은 버린다
+    refreshAges(); markDirty();
+  });
+
+  $("#e-year").addEventListener("input",e=>{
+    const v = parseInt(e.target.value,10);
+    if(!isNaN(v)){ EV[idx].year=v;
+      $("#e-age").textContent=ageLabel(v).replace(/^\s*·\s*/,""); markDirty(); }
+  });
+  $("#e-score").addEventListener("input",e=>{
+    EV[idx].score = parseInt(e.target.value,10);
+    $("#e-sv").textContent=(EV[idx].score>0?"+":"")+EV[idx].score;
+    markDirty(); update();
+  });
+  $("#e-body").addEventListener("input",e=>{
+    EV[idx].body = e.target.value; markDirty();
+  });
+
+  document.querySelectorAll("[data-act]").forEach(b=>{
+    b.addEventListener("click",()=>act(b.dataset.act));
+  });
+
+  saveBtn.addEventListener("click",save);
+  $("#done").addEventListener("click",finish);
+  $("#setup-open").addEventListener("click",openSetup);
+  $("#setup-close").addEventListener("click",()=>setupEl.classList.remove("on"));
+  $("#setup-go").addEventListener("click",connect);
+  $("#setup-new").addEventListener("click",createGist);
+
+  addEventListener("beforeunload",e=>{
+    if(dirty){ e.preventDefault(); e.returnValue=""; }
+  });
+}
+
+/* 남은 변경을 저장한 뒤 보기 모드로 나간다.
+   저장이 실패하면 나가지 않고 편집 모드에 머문다. */
+async function finish(){
+  if(dirty){
+    await save();
+    if(dirty) return;
+  }
+  location.href = location.pathname;
+}
+
+function act(a){
+  if(a==="add"){
+    const cur = EV[idx];
+    EV.splice(idx+1,0,{year:(cur?.year||2000)+1,label:"새 사건",score:0,body:""});
+    const to = idx+1; build(); requestAnimationFrame(()=>jumpTo(to));
+    markDirty();
+  }
+  if(a==="del"){
+    if(EV.length<=1) return;
+    if(!confirm(`"${EV[idx].label}" 을 지울까요?`)) return;
+    EV.splice(idx,1);
+    const to = clamp(idx,0,EV.length-1); build();
+    requestAnimationFrame(()=>jumpTo(to)); markDirty();
+  }
+  if(a==="sort"){
+    const keep = EV[idx];
+    EV.sort((a,b)=>a.year-b.year);
+    const to = EV.indexOf(keep); build();
+    requestAnimationFrame(()=>jumpTo(to)); markDirty();
+  }
+}
+
+/* ── Gist 입출력 ──────────────────────────────────────────── */
+const cfg = () => ({
+  tok:  localStorage.getItem(LS.tok)  || "",
+  gist: localStorage.getItem(LS.gist) || GIST_ID,
+  user: localStorage.getItem(LS.user) || GIST_USER,
+});
+
+function openSetup(){
+  const c = cfg();
+  $("#s-token").value = c.tok;
+  $("#s-gist").value  = c.gist;
+  setupEl.classList.add("on");
+}
+
+function connect(){
+  const t=$("#s-token").value.trim(), g=$("#s-gist").value.trim();
+  if(t) localStorage.setItem(LS.tok,t);
+  if(g) localStorage.setItem(LS.gist,g);
+  setupEl.classList.remove("on");
+  say(g ? "연결됨" : "토큰 저장됨 · Gist를 만들어주세요");
+}
+
+async function gh(path,method,body){
+  const c=cfg();
+  if(!c.tok) throw new Error("토큰이 없습니다 · 설정에서 넣어주세요");
+  const r = await fetch("https://api.github.com"+path,{
+    method,
+    headers:{Authorization:"Bearer "+c.tok, Accept:"application/vnd.github+json"},
+    body: body?JSON.stringify(body):undefined
+  });
+  if(!r.ok) throw new Error(`GitHub ${r.status} · ${r.status===401?"토큰이 잘못됐습니다":r.statusText}`);
+  return r.json();
+}
+
+async function createGist(){
+  const t=$("#s-token").value.trim();
+  if(t) localStorage.setItem(LS.tok,t);
+  try{
+    say("만드는 중…");
+    const j = await gh("/gists","POST",{
+      description:"인생 그래프",
+      public:false,
+      files:{[GIST_FILE]:{content:JSON.stringify(D,null,2)}}
+    });
+    localStorage.setItem(LS.gist,j.id);
+    localStorage.setItem(LS.user,j.owner.login);
+    $("#s-gist").value = j.id;
+    $("#s-note").innerHTML =
+      `만들었습니다. 배포본에서도 보이려면 <b>index.html 맨 위</b> 두 줄을 이렇게 바꾸세요.\n\n` +
+      `<b>GIST_USER = "${j.owner.login}"</b>\n<b>GIST_ID   = "${j.id}"</b>`;
+    say("Gist 생성됨");
+  }catch(e){ say(e.message,true); }
+}
+
+async function save(){
+  const c=cfg();
+  if(!c.gist){ openSetup(); say("Gist를 먼저 만들어주세요",true); return; }
+  saveBtn.disabled=true; say("저장 중…");
+  try{
+    await gh("/gists/"+encodeURIComponent(c.gist),"PATCH",{
+      files:{[GIST_FILE]:{content:JSON.stringify(D,null,2)}}
+    });
+    dirty=false; saveBtn.classList.remove("dirty");
+    say("저장됨 · "+new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"}));
+  }catch(e){ say(e.message,true); }
+  saveBtn.disabled=false;
+}
+
+function say(m,err){
+  statusEl.textContent=m;
+  statusEl.classList.toggle("err",!!err);
+}
+
+async function load(){
+  const c=cfg();
+  if(!c.gist) return null;
+  // 네트워크가 멎어도 페이지가 영영 비어 있지 않도록 시간을 끊는다
+  const go = u => fetch(u,{signal:AbortSignal.timeout(6000)});
+  if(c.user){
+    try{
+      const r = await go(`https://gist.githubusercontent.com/${c.user}/${c.gist}/raw/${GIST_FILE}?t=${Date.now()}`);
+      if(r.ok) return await r.json();
+    }catch(e){}
+  }
+  try{                       // raw가 막히면 API로 (미인증 시간당 60회)
+    const r = await go(`https://api.github.com/gists/${c.gist}`);
+    if(r.ok){
+      const j = await r.json();
+      const f = j.files?.[GIST_FILE];
+      if(f?.content) return JSON.parse(f.content);
+    }
+  }catch(e){}
+  return null;
+}
+
+/* ── 잡다 ─────────────────────────────────────────────────── */
+gbtn.addEventListener("click",()=>{
+  graphOn=!graphOn;
+  curveEl.classList.toggle("on",graphOn);
+  gbtn.classList.toggle("on",graphOn);
+  gbtn.textContent=graphOn?"그래프 숨기기":"그래프 보기";
+  update();
+});
+
+/* 스크롤 추적은 두 갈래로 건다.
+   이벤트 하나만 믿으면 프로그램적 스크롤을 놓치는 환경이 있고,
+   프레임 루프 하나만 믿으면 문서가 숨겨진 동안 멈춘다. */
+let lastY = -1;
+function sync(){ if(scrollY!==lastY){ lastY=scrollY; update(); } }
+(function tick(){ sync(); requestAnimationFrame(tick); })();
+addEventListener("scroll", sync, {passive:true});
+addEventListener("visibilitychange", sync);
+addEventListener("resize", layout);
+
+(async function init(){
+  if(EDIT) initEdit();
+  const remote = await load();
+  if(remote && Array.isArray(remote.events) && remote.events.length){
+    D = remote;
+  }
+  build();
+  if(EDIT && !cfg().gist) openSetup();
+  if(document.fonts?.ready) document.fonts.ready.then(layout);
+})();
+</script>
+</body>
+</html>
