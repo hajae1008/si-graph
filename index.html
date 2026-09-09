@@ -104,16 +104,13 @@
   #kicker{position:absolute;left:var(--pad);top:var(--pad);
     font-family:var(--mono);font-size:10px;letter-spacing:.2em;
     color:rgba(var(--ink),.34)}
-  #curve{position:absolute;inset:0;pointer-events:none;opacity:0;
-    transition:opacity .5s ease}
-  #curve.on{opacity:1}
-  #gbtn{position:absolute;left:var(--pad);bottom:var(--pad)}
-  #gbtn.on{color:rgb(var(--ink))}
-  #done{
+  /* 좌하단 한 자리를 보기/편집이 번갈아 쓴다 */
+  #editbtn,#done{
     position:absolute;left:var(--pad);bottom:var(--pad);
     display:none;color:rgb(var(--ink));
   }
-  body.edit #gbtn{display:none}
+  #editbtn.show{display:block}
+  body.edit #editbtn{display:none}
   body.edit #done{display:block}
   #hint{position:absolute;right:var(--pad);bottom:var(--pad);
     font-family:var(--mono);font-size:10px;letter-spacing:.18em;
@@ -191,9 +188,6 @@
   <div id="stage">
     <div id="kicker">LIFE GRAPH</div>
 
-    <svg id="curve"><path id="curve-path" fill="none"
-      stroke="rgba(17,17,17,.28)" stroke-width="1.25"/></svg>
-
     <div id="lines"></div>
 
     <aside id="panel">
@@ -232,7 +226,7 @@
       <p>THE CURVE CONTINUES</p>
     </div>
 
-    <button class="mono-btn" id="gbtn">그래프 보기</button>
+    <button class="mono-btn" id="editbtn">수정하기 →</button>
     <button class="mono-btn" id="done">← 편집 완료</button>
     <div id="hint">SCROLL ↓</div>
   </div>
@@ -305,8 +299,7 @@ const $ = s => document.querySelector(s);
 const scroller=$("#scroller"), linesEl=$("#lines"), panelEl=$("#panel");
 const heroEl=$("#hero"), outroEl=$("#outro");
 const pMeta=$("#p-meta"), pBody=$("#p-body");
-const curveEl=$("#curve"), curvePath=$("#curve-path");
-const gbtn=$("#gbtn"), hintEl=$("#hint"), barEl=$("#bar");
+const hintEl=$("#hint"), barEl=$("#bar"), editBtn=$("#editbtn");
 const saveBtn=$("#save"), statusEl=$("#status"), setupEl=$("#setup");
 
 const EDIT = new URLSearchParams(location.search).has("edit");
@@ -314,7 +307,7 @@ const LS = { tok:"lg.token", gist:"lg.gist", user:"lg.user" };
 
 let D = JSON.parse(JSON.stringify(SEED));
 let EV = D.events;
-let nodes = [], L = {}, idx = -1, graphOn = false, dirty = false;
+let nodes = [], L = {}, idx = -1, dirty = false;
 
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const ease=t=>1-Math.pow(1-t,2.4);
@@ -393,8 +386,6 @@ function layout(){
 
   nodes.forEach(fit);
   scroller.style.height = ((EV.length + 2.2)*L.step + h) + "px";
-  curveEl.setAttribute("viewBox",`0 0 ${w} ${h}`);
-  curveEl.setAttribute("width",w); curveEl.setAttribute("height",h);
   update();
 }
 
@@ -402,7 +393,6 @@ const offsetOf = s => (1 - (clamp(s,-5,5)+5)/10) * L.maxOff;
 
 function update(){
   const p = scrollY/L.step - 1.75;
-  const pts = [];
 
   for(let i=0;i<nodes.length;i++){
     const d=Math.abs(i-p), y=L.axis+(i-p)*L.gap, el=nodes[i];
@@ -413,7 +403,6 @@ function update(){
     el.style.transform=`translate3d(${-offsetOf(EV[i].score)}px,${y-L.fs*0.62}px,0)`;
     const near=ease(clamp(1-d,0,1)), far=clamp(1-d/4.6,0,1);
     el.style.color=`rgba(var(--ink),${(0.10+0.90*near)*far})`;
-    pts.push([innerWidth-L.pad-offsetOf(EV[i].score), y]);
   }
 
   const ni = clamp(Math.round(p),0,EV.length-1);
@@ -432,7 +421,6 @@ function update(){
   heroEl.style.pointerEvents  = (EDIT && heroA  > 0.5) ? "auto" : "none";
   outroEl.style.pointerEvents = (EDIT && outroA > 0.5) ? "auto" : "none";
 
-  if(graphOn) drawCurve(pts);
 }
 
 /* 초점이 바뀔 때만 패널·편집 대상을 갈아끼운다 */
@@ -450,16 +438,6 @@ function focus(i){
     $("#e-sv").textContent = (e.score>0?"+":"") + e.score;
     $("#e-body").value = e.body || "";
   }
-}
-
-function drawCurve(pts){
-  if(pts.length<2){ curvePath.setAttribute("d",""); return; }
-  let d=`M${pts[0][0]},${pts[0][1]}`;
-  for(let i=0;i<pts.length-1;i++){
-    const [x0,y0]=pts[i],[x1,y1]=pts[i+1], my=(y0+y1)/2;
-    d+=` C${x0},${my} ${x1},${my} ${x1},${y1}`;
-  }
-  curvePath.setAttribute("d",d);
 }
 
 const jumpTo = i => scrollTo({top:(i+1.75)*L.step, behavior:"smooth"});
@@ -652,14 +630,6 @@ async function load(){
 }
 
 /* ── 잡다 ─────────────────────────────────────────────────── */
-gbtn.addEventListener("click",()=>{
-  graphOn=!graphOn;
-  curveEl.classList.toggle("on",graphOn);
-  gbtn.classList.toggle("on",graphOn);
-  gbtn.textContent=graphOn?"그래프 숨기기":"그래프 보기";
-  update();
-});
-
 /* 스크롤 추적은 두 갈래로 건다.
    이벤트 하나만 믿으면 프로그램적 스크롤을 놓치는 환경이 있고,
    프레임 루프 하나만 믿으면 문서가 숨겨진 동안 멈춘다. */
@@ -672,6 +642,12 @@ addEventListener("resize", layout);
 
 (async function init(){
   if(EDIT) initEdit();
+  else if(localStorage.getItem(LS.tok)){
+    // 이 브라우저에 토큰이 있을 때만 = 주인일 때만 보인다.
+    // 처음 쓰는 브라우저에서는 주소에 ?edit 을 붙여 들어오면 된다.
+    editBtn.classList.add("show");
+    editBtn.addEventListener("click",()=>{ location.href = location.pathname + "?edit"; });
+  }
   const remote = await load();
   if(remote && Array.isArray(remote.events) && remote.events.length){
     D = remote;
