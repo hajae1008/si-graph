@@ -184,11 +184,6 @@
       <h1></h1>
     </div>
 
-    <div class="card" id="outro">
-      <h1>아직 진행 중</h1>
-      <p>THE CURVE CONTINUES</p>
-    </div>
-
     <button class="mono-btn" id="editbtn">수정하기 →</button>
     <button class="mono-btn" id="done">← 편집 완료</button>
   </div>
@@ -242,7 +237,7 @@ let D = {
 
 const $ = s => document.querySelector(s);
 const scroller=$("#scroller"), linesEl=$("#lines"), panelEl=$("#panel");
-const heroEl=$("#hero"), outroEl=$("#outro");
+const heroEl=$("#hero");
 const pMeta=$("#p-meta"), pBody=$("#p-body");
 const editBtn=$("#editbtn"), statusEl=$("#status");
 
@@ -333,7 +328,7 @@ function layout(){
   L.avail = w - L.pad - L.maxOff - panelBlock - 12;
 
   nodes.forEach(fit);
-  scroller.style.height = ((EV.length + 2.2)*L.step + h) + "px";
+  scroller.style.height = ((EV.length + 0.75)*L.step + h) + "px";
   update();
 }
 
@@ -360,13 +355,10 @@ function update(){
   panelEl.style.opacity = EDIT ? 1
     : ((p>-0.5 && p<EV.length-0.5) ? near : 0);
 
-  const heroA  = clamp(-(p+0.55)/0.7,0,1);
-  const outroA = clamp((p-(EV.length-1)-0.35)/0.6,0,1);
+  const heroA = clamp(-(p+0.55)/0.7,0,1);
   heroEl.style.opacity = heroA;
-  outroEl.style.opacity = outroA;
   // 투명한 카드가 화면 전체를 덮고 클릭을 삼키지 않도록
-  heroEl.style.pointerEvents  = (EDIT && heroA  > 0.5) ? "auto" : "none";
-  outroEl.style.pointerEvents = (EDIT && outroA > 0.5) ? "auto" : "none";
+  heroEl.style.pointerEvents = (EDIT && heroA > 0.5) ? "auto" : "none";
 }
 
 /* 초점이 바뀔 때만 패널·편집 대상을 갈아끼운다 */
