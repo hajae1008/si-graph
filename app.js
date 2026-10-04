@@ -205,11 +205,13 @@ function layout(){
   const w=innerWidth, h=innerHeight, narrow = w<720;
   L.step = narrow?250:330;
   L.fs   = clamp(w*(narrow?.105:.076),30,96);
-  L.gap  = L.fs*1.12;
+  L.gap  = L.fs*(isTalk() ? 0.80 : 1.12);
   L.pad  = parseFloat(getComputedStyle(document.documentElement)
              .getPropertyValue("--pad"))||32;
   L.maxOff = Math.min(w*(narrow?.22:.19),250);
-  L.axis = narrow ? h*0.38 : h*0.50;
+  // 인생 그래프는 가운데를 기준 삼지만, 인터뷰는 질문이 위에서 시작한다.
+  L.axis = isTalk() ? h*(narrow ? 0.20 : 0.17)
+                    : h*(narrow ? 0.38 : 0.50);
   const panelBlock = narrow ? 0 : Math.min(330,w*.32)+L.pad+40;
   L.avail = w - L.pad - L.maxOff - panelBlock - 12;
 
@@ -232,7 +234,7 @@ function update(){
     el.style.visibility="visible";
     const fs = parseFloat(el.style.fontSize) || L.fs;
     el.style.transform=`translate3d(${-offsetAt(i)}px,${y-fs*0.62}px,0)`;
-    const near=ease(clamp(1-d,0,1)), far=clamp(1-d/4.6,0,1);
+    const near=ease(clamp(1-d,0,1)), far=clamp(1-d/(isTalk()?6.5:4.6),0,1);
     el.style.color=`rgba(var(--ink),${(0.10+0.90*near)*far})`;
   }
 

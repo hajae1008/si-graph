@@ -31,7 +31,11 @@
   }
   /* ── 인터뷰: 질문이 크고 왼쪽, 답변은 작고 오른쪽 ── */
   body.talk .ev{right:auto;left:var(--pad);transform-origin:0 50%;font-weight:600}
-  body.talk #panel{left:auto;right:var(--pad);max-height:76vh;overflow-y:auto}
+  body.talk #panel{
+    left:auto;right:var(--pad);
+    top:13vh;transform:none;              /* 질문과 같은 높이에서 시작한다 */
+    max-height:80vh;overflow-y:auto;
+  }
   .ans{margin-bottom:18px}
   .ans:last-child{margin-bottom:0}
   .ans b{display:block;font-size:15px;font-weight:700;letter-spacing:-.02em;
