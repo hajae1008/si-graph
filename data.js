@@ -7,7 +7,7 @@ window.LIFE = {
 
   /* 지인 인터뷰 — 남이 본 나. keyword 가 큰 글자로 나간다(짧을수록 좋다).
      비어 있으면 배포본에 전환 버튼 자체가 뜨지 않는다. */
-  talkTitle: "사람들이 본 나",
+  talkTitle: "지인 인터뷰",
   interviews: [
     { who:"J", relation:"대학 동기",
       q:"나의 첫인상은 어땠고, 지금은 어떤 인상이야?",

@@ -29,6 +29,27 @@
     position:absolute;left:var(--pad);top:50%;transform:translateY(-50%);
     width:min(330px,32vw);will-change:opacity;
   }
+  /* ── 인터뷰: 질문이 크고 왼쪽, 답변은 작고 오른쪽 ── */
+  body.talk .ev{right:auto;left:var(--pad);transform-origin:0 50%;font-weight:600}
+  body.talk #panel{left:auto;right:var(--pad);max-height:76vh;overflow-y:auto}
+  .ans{margin-bottom:18px}
+  .ans:last-child{margin-bottom:0}
+  .ans b{display:block;font-size:15px;font-weight:700;letter-spacing:-.02em;
+    margin-bottom:5px;color:rgb(var(--ink))}
+  .ans p{margin:0;font-size:13.5px;line-height:1.7;letter-spacing:-.01em;
+    color:rgba(var(--ink),.6);white-space:pre-wrap}
+
+  /* 편집: 답 하나마다 한 덩이 */
+  .afld{margin:0 0 16px;padding-left:11px;border-left:1px solid rgba(var(--ink),.14)}
+  .a-key{display:block;width:100%;margin-bottom:5px;
+    font-family:var(--sans);font-size:15px;font-weight:700;letter-spacing:-.02em;
+    color:rgb(var(--ink));background:none;border:0;
+    border-bottom:1px solid rgba(var(--ink),.16);padding:2px 0;outline:none}
+  .a-body{display:block;width:100%;min-height:76px;resize:vertical;
+    font-family:var(--sans);font-size:13.5px;line-height:1.7;letter-spacing:-.01em;
+    color:rgba(var(--ink),.75);background:none;border:0;padding:4px 0;outline:none}
+  .afld .mono-btn{font-size:9px}
+
   #p-q{
     font-size:15px;line-height:1.55;letter-spacing:-.015em;
     color:rgba(var(--ink),.92);margin-bottom:16px;
@@ -164,8 +185,8 @@
 
   /* ── 모바일 ────────────────────────────────── */
   @media (max-width:719px){
-    #panel{left:var(--pad);right:var(--pad);width:auto;
-      top:auto;bottom:calc(var(--pad) + 40px);transform:none}
+    #panel,body.talk #panel{left:var(--pad);right:var(--pad);width:auto;
+      top:auto;bottom:calc(var(--pad) + 40px);transform:none;max-height:46vh}
     #p-q,#t-q{font-size:14px}
     #p-body,#e-body,#t-body{font-size:13.5px;line-height:1.7}
     #e-body,#t-body{min-height:80px}

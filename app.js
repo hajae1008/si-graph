@@ -18,16 +18,16 @@ document.body.insertAdjacentHTML("afterbegin", `
         <div id="p-q"></div>
         <div id="p-meta"></div>
         <p id="p-body"></p>
+        <div id="p-answers"></div>
       </div>
 
       <div id="p-edit-talk">
-        <textarea id="t-q" placeholder="무슨 질문이었나요?"></textarea>
         <div class="fld"><span class="lbl">WHO</span><input id="t-who" type="text" placeholder="이름"></div>
-        <div class="fld"><span class="lbl">REL</span><input id="t-rel" type="text" placeholder="엄마 · 대학 동기 · 전 직장 동료"></div>
-        <textarea id="t-body" placeholder="그 사람이 한 말을 그대로 옮겨 적으세요."></textarea>
+        <div class="fld"><span class="lbl">REL</span><input id="t-rel" type="text" placeholder="대학 동기"></div>
+        <div id="t-answers"></div>
         <div class="acts">
-          <button class="mono-btn" data-act="add">+ 아래에 추가</button>
-          <button class="mono-btn danger" data-act="del">삭제</button>
+          <button class="mono-btn" data-act="add">+ 질문 추가</button>
+          <button class="mono-btn danger" data-act="del">질문째 삭제</button>
         </div>
       </div>
 
@@ -89,7 +89,7 @@ let D = window.LIFE;
 const $ = s => document.querySelector(s);
 const scroller=$("#scroller"), linesEl=$("#lines"), panelEl=$("#panel");
 const heroEl=$("#hero");
-const pQ=$("#p-q"), pMeta=$("#p-meta"), pBody=$("#p-body");
+const pQ=$("#p-q"), pMeta=$("#p-meta"), pBody=$("#p-body"), ansEl=$("#p-answers");
 const editBtn=$("#editbtn"), statusEl=$("#status"), modeBtn=$("#modebtn");
 
 /* 데이터가 코드 안에 있으므로 배포본에서 고쳐봐야 갈 곳이 없다.
@@ -102,8 +102,21 @@ const DRAFT = "lg.draft";
    타이포 방식은 같지만 talk 에는 점수가 없어 좌우로 밀지 않는다. */
 const mode = (window.PAGE === "talk") ? "talk" : "graph";
 const isTalk = () => mode === "talk";
-const list    = () => isTalk() ? (D.interviews ||= []) : D.events;
-const labelOf = e => (isTalk() ? e.keyword : e.label) || "";
+const SRC = () => (D.interviews ||= []);
+
+/* 같은 질문에 달린 답들을 한 장면으로 묶는다.
+   질문이 큰 글자를 맡으므로, 같은 문장을 여러 번 세울 수 없다. */
+function groupQ(src){
+  const out = [];
+  src.forEach(e=>{
+    const last = out[out.length-1];
+    if(last && last.q === e.q) last.answers.push(e);
+    else out.push({q:e.q, answers:[e]});
+  });
+  return out;
+}
+const list    = () => isTalk() ? groupQ(SRC()) : D.events;
+const labelOf = e => (isTalk() ? e.q : e.label) || "";
 
 let EV = D.events;
 let nodes = [], L = {}, idx = -1, dirty = false;
@@ -150,7 +163,8 @@ function build(){
     if (EDIT){
       el.addEventListener("input", ()=>{
         const v = el.textContent.replace(/\n/g," ").trim();
-        if(isTalk()) EV[i].keyword = v; else EV[i].label = v;
+        if(!isTalk()) EV[i].label = v;
+        else EV[i].answers.forEach(a=>{ a.q = v; });   // 묶음 전체
         markDirty(); fit(el);
       });
       el.addEventListener("keydown", ev=>{
@@ -181,7 +195,7 @@ function build(){
 }
 
 function fit(el){
-  const base = L.fs;
+  const base = isTalk() ? L.fs*0.60 : L.fs;
   el.style.fontSize = base + "px";
   const nat = el.offsetWidth;
   if (nat > L.avail) el.style.fontSize = (base * L.avail / nat) + "px";
@@ -240,18 +254,25 @@ function focus(i){
   if(idx>=0 && nodes[idx]) nodes[idx].removeAttribute("contenteditable");
   idx = i;
   const e = EV[i]; if(!e) return;
-  pQ.textContent    = isTalk() ? (e.q || "") : "";
-  pMeta.textContent = isTalk()
-    ? [e.who, e.relation].filter(Boolean).join("  ·  ")
-    : e.year + ageLabel(e.year);
-  pBody.textContent = e.body || "";
+  if(isTalk()){
+    const a0 = e.answers[0] || {};
+    pQ.textContent    = "";
+    pMeta.textContent = [a0.who, a0.relation].filter(Boolean).join("  ·  ");
+    pBody.textContent = "";
+    renderAnswers(e);
+  }else{
+    pQ.textContent    = "";
+    pMeta.textContent = e.year + ageLabel(e.year);
+    pBody.textContent = e.body || "";
+    ansEl.innerHTML   = "";
+  }
   if(EDIT){
     nodes[i].setAttribute("contenteditable","plaintext-only");
     if(isTalk()){
-      $("#t-q").value    = e.q || "";
-      $("#t-who").value  = e.who || "";
-      $("#t-rel").value  = e.relation || "";
-      $("#t-body").value = e.body || "";
+      const a0 = e.answers[0] || {};
+      $("#t-who").value  = a0.who || "";
+      $("#t-rel").value  = a0.relation || "";
+      renderAnswerFields(e);
     }else{
       $("#e-year").value = e.year;
       $("#e-age").textContent = ageLabel(e.year).replace(/^\s*·\s*/,"");
@@ -260,6 +281,49 @@ function focus(i){
       $("#e-body").value = e.body || "";
     }
   }
+}
+
+/* 보기: 한 질문에 달린 답들을 오른쪽에 차례로 세운다. */
+function renderAnswers(g){
+  ansEl.innerHTML = "";
+  g.answers.forEach(a=>{
+    const d = document.createElement("div");
+    d.className = "ans";
+    const k = document.createElement("b"); k.textContent = a.keyword || "";
+    const t = document.createElement("p"); t.textContent = a.body || "";
+    d.append(k, t); ansEl.appendChild(d);
+  });
+}
+
+/* 편집: 답 하나마다 키워드 칸과 본문 칸을 깐다. */
+function renderAnswerFields(g){
+  const box = $("#t-answers"); box.innerHTML = "";
+  g.answers.forEach((a,n)=>{
+    const d = document.createElement("div"); d.className = "afld";
+    const k = document.createElement("input");
+    k.className = "a-key"; k.value = a.keyword || ""; k.placeholder = "키워드";
+    k.addEventListener("input",()=>{ a.keyword = k.value; markDirty(); });
+    const t = document.createElement("textarea");
+    t.className = "a-body"; t.value = a.body || ""; t.placeholder = "그 사람이 한 말";
+    t.addEventListener("input",()=>{ a.body = t.value; markDirty(); });
+    const x = document.createElement("button");
+    x.className = "mono-btn danger"; x.textContent = "이 답 삭제";
+    x.addEventListener("click",()=>{
+      if(g.answers.length<=1){ alert("질문의 마지막 답입니다. 질문째 지우세요."); return; }
+      const src = SRC(), i = src.indexOf(a); if(i>=0) src.splice(i,1);
+      markDirty(); build(); requestAnimationFrame(()=>jumpTo(idx));
+    });
+    d.append(k,t,x); box.appendChild(d);
+  });
+  const add = document.createElement("button");
+  add.className = "mono-btn"; add.textContent = "+ 답 추가";
+  add.addEventListener("click",()=>{
+    const src = SRC(), last = g.answers[g.answers.length-1];
+    src.splice(src.indexOf(last)+1, 0,
+      {who:last.who, relation:last.relation, q:g.q, keyword:"새 답변", body:""});
+    markDirty(); build(); requestAnimationFrame(()=>jumpTo(idx));
+  });
+  box.appendChild(add);
 }
 
 /* 부드러운 스크롤을 조용히 무시하는 환경이 있다.
@@ -321,19 +385,14 @@ function initEdit(){
     delete D.birthYear;
     refreshAges(); markDirty();
   });
-  $("#t-q").addEventListener("input",e=>{
-    // 한 질문에 답이 여럿이면 그 묶음 전체를 같이 고친다.
-    const v = e.target.value, was = EV[idx].q;
-    for(let k=idx; k<EV.length && EV[k].q === was; k++) EV[k].q = v;
-    pQ.textContent = v; markDirty();
-  });
-  $("#t-who").addEventListener("input",e=>{ EV[idx].who = e.target.value;
-    pMeta.textContent = [EV[idx].who, EV[idx].relation].filter(Boolean).join("  ·  ");
-    markDirty(); });
-  $("#t-rel").addEventListener("input",e=>{ EV[idx].relation = e.target.value;
-    pMeta.textContent = [EV[idx].who, EV[idx].relation].filter(Boolean).join("  ·  ");
-    markDirty(); });
-  $("#t-body").addEventListener("input",e=>{ EV[idx].body = e.target.value; markDirty(); });
+  const whoRel = () => {
+    const a0 = EV[idx].answers[0];
+    pMeta.textContent = [a0.who, a0.relation].filter(Boolean).join("  ·  ");
+  };
+  $("#t-who").addEventListener("input",e=>{
+    EV[idx].answers.forEach(a=>{ a.who = e.target.value; }); whoRel(); markDirty(); });
+  $("#t-rel").addEventListener("input",e=>{
+    EV[idx].answers.forEach(a=>{ a.relation = e.target.value; }); whoRel(); markDirty(); });
 
   $("#e-year").addEventListener("input",e=>{
     const v = parseInt(e.target.value,10);
@@ -372,16 +431,28 @@ function download(){
 function act(a){
   if(a==="add"){
     const cur = EV[idx];
-    const item = isTalk()
-      ? {who:cur?.who||"", relation:cur?.relation||"", q:cur?.q||"", keyword:"새 답변", body:""}
-      : {year:(cur?.year||2000)+1, label:"새 사건", score:0, body:""};
+    if(isTalk()){
+      const src = SRC(), a0 = cur?.answers[0];
+      const at = a0 ? src.indexOf(cur.answers[cur.answers.length-1])+1 : src.length;
+      src.splice(at,0,{who:a0?.who||"", relation:a0?.relation||"",
+                       q:"새 질문", keyword:"새 답변", body:""});
+      markDirty(); build(); requestAnimationFrame(()=>jumpTo(Math.min(idx+1,EV.length-1)));
+      return;
+    }
     const to = Math.max(idx,-1) + 1;      // 비어 있으면 0번에 넣는다
-    EV.splice(to,0,item);
+    EV.splice(to,0,{year:(cur?.year||2000)+1, label:"새 사건", score:0, body:""});
     markDirty(); build(); requestAnimationFrame(()=>jumpTo(to));
   }
   if(a==="del"){
     if(EV.length<1 || idx<0) return;
     if(!confirm(`"${labelOf(EV[idx])}" 을 지울까요?`)) return;
+    if(isTalk()){
+      const src = SRC();
+      EV[idx].answers.forEach(x=>{ const k=src.indexOf(x); if(k>=0) src.splice(k,1); });
+      markDirty(); build();
+      requestAnimationFrame(()=>jumpTo(Math.max(0,Math.min(idx,EV.length-1))));
+      return;
+    }
     EV.splice(idx,1);
     const to = clamp(idx,0,EV.length-1); markDirty(); build();
     requestAnimationFrame(()=>jumpTo(to));
