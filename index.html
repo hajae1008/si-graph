@@ -43,12 +43,27 @@
     letter-spacing:-.01em;margin:0;white-space:pre-wrap}
 
   /* ── 왼쪽 패널 · 편집 ──────────────────────── */
-  #p-edit{display:none}
+  #p-edit,#p-edit-talk{display:none}
   body.edit #p-view{display:none}
-  body.edit #p-edit{display:block}
+  body.edit:not(.talk) #p-edit{display:block}
+  body.edit.talk  #p-edit-talk{display:block}
   .fld{display:flex;align-items:center;gap:10px;margin-bottom:14px}
   .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;
     color:rgba(var(--ink),.34);flex:0 0 34px}
+  #t-who,#t-rel{
+    font-family:var(--sans);font-size:14px;letter-spacing:-.01em;flex:1;
+    background:none;border:0;border-bottom:1px solid rgba(var(--ink),.16);
+    color:rgb(var(--ink));padding:3px 0;outline:none;
+  }
+  #t-who:focus,#t-rel:focus{border-bottom-color:rgb(var(--ink))}
+  #t-body{
+    width:100%;min-height:132px;resize:vertical;
+    font-family:var(--sans);font-size:14.5px;line-height:1.75;
+    letter-spacing:-.01em;color:rgba(var(--ink),.75);
+    background:none;border:0;border-left:1px solid rgba(var(--ink),.14);
+    padding:2px 0 2px 12px;outline:none;
+  }
+  #t-body::placeholder{color:rgba(var(--ink),.25)}
   #e-year{
     font-family:var(--mono);font-size:11px;letter-spacing:.12em;width:64px;
     background:none;border:0;border-bottom:1px solid rgba(var(--ink),.16);
@@ -106,6 +121,14 @@
     display:none;color:rgb(var(--ink));
   }
   #editbtn.show{display:block}
+  /* 우하단: 인생 그래프 ↔ 지인 인터뷰 */
+  #modebtn{
+    position:absolute;right:var(--pad);bottom:var(--pad);
+    display:none;color:rgb(var(--ink));
+  }
+  #modebtn.show{display:block}
+  /* 편집 중에는 우하단을 툴바가 쓴다. 한 줄 위로 비켜준다. */
+  @media (min-width:720px){ body.edit #modebtn{bottom:calc(var(--pad) + 46px)} }
   body.edit #editbtn{display:none}
   body.edit #done{display:block}
 
@@ -138,8 +161,8 @@
   @media (max-width:719px){
     #panel{left:var(--pad);right:var(--pad);width:auto;
       top:auto;bottom:calc(var(--pad) + 40px);transform:none}
-    #p-body,#e-body{font-size:13.5px;line-height:1.7}
-    #e-body{min-height:80px}
+    #p-body,#e-body,#t-body{font-size:13.5px;line-height:1.7}
+    #e-body,#t-body{min-height:80px}
     #bar{bottom:auto;top:var(--pad);left:var(--pad)}
     #kicker{opacity:0}
   }
@@ -157,6 +180,16 @@
       <div id="p-view">
         <div id="p-meta"></div>
         <p id="p-body"></p>
+      </div>
+
+      <div id="p-edit-talk">
+        <div class="fld"><span class="lbl">WHO</span><input id="t-who" type="text" placeholder="이름"></div>
+        <div class="fld"><span class="lbl">REL</span><input id="t-rel" type="text" placeholder="엄마 · 대학 동기 · 전 직장 동료"></div>
+        <textarea id="t-body" placeholder="그 사람이 한 말을 그대로 옮겨 적으세요."></textarea>
+        <div class="acts">
+          <button class="mono-btn" data-act="add">+ 아래에 추가</button>
+          <button class="mono-btn danger" data-act="del">삭제</button>
+        </div>
       </div>
 
       <div id="p-edit">
@@ -184,6 +217,7 @@
       <h1></h1>
     </div>
 
+    <button class="mono-btn" id="modebtn"></button>
     <button class="mono-btn" id="editbtn">수정하기 →</button>
     <button class="mono-btn" id="done">← 편집 완료</button>
   </div>
@@ -210,6 +244,14 @@
 let D = {
   name: "99 박주연",
   birth: "",                  // 예: "1999-10-08". 비우면 나이 없이 연도만 나온다
+
+  /* 지인 인터뷰 — 남이 본 나. keyword 가 큰 글자로 나간다(짧을수록 좋다).
+     비어 있으면 배포본에 전환 버튼 자체가 뜨지 않는다. */
+  talkTitle: "사람들이 본 나",
+  interviews: [
+    // { who:"엄마", relation:"가족", keyword:"고집", body:"하겠다고 하면 꼭 하더라." },
+  ],
+
   events: [
     { year:2007, label:"동생이 태어났다", score: 0, body:"학교가 끝나고 정문으로 나갔더니 아빠가 나를 기다리고 있었다. 아빠 손을 잡고 병원에 갔더니 쭈글쭈글한 아기가 있었다." },
     { year:2016, label:"수학 전교 1등", score:-1, body:"수학을 좋아했던 나는 같은 문제집을 5번 이상 반복해서 풀었다. 그러다 고2 때 처음으로 수학 모의고사에서 전교 1등을 했다. 그날 밤 엄마 아빠한테 성적표 들고 자랑하니까 치킨을 사 주셨다." },
@@ -239,13 +281,20 @@ const $ = s => document.querySelector(s);
 const scroller=$("#scroller"), linesEl=$("#lines"), panelEl=$("#panel");
 const heroEl=$("#hero");
 const pMeta=$("#p-meta"), pBody=$("#p-body");
-const editBtn=$("#editbtn"), statusEl=$("#status");
+const editBtn=$("#editbtn"), statusEl=$("#status"), modeBtn=$("#modebtn");
 
 /* 데이터가 코드 안에 있으므로 배포본에서 고쳐봐야 갈 곳이 없다.
    편집은 내 컴퓨터에서만 연다. */
 const LOCAL = ["localhost","127.0.0.1","[::1]",""].includes(location.hostname);
 const EDIT  = LOCAL && new URLSearchParams(location.search).has("edit");
 const DRAFT = "lg.draft";
+
+/* 화면은 둘이다. 내가 쓴 내 이야기(graph), 남이 말한 나(talk).
+   타이포 방식은 같지만 talk 에는 점수가 없어 좌우로 밀지 않는다. */
+let mode = "graph";
+const isTalk = () => mode === "talk";
+const list   = () => isTalk() ? (D.interviews ||= []) : D.events;
+const labelOf = e => (isTalk() ? e.keyword : e.label) || "";
 
 let EV = D.events;
 let nodes = [], L = {}, idx = -1, dirty = false;
@@ -277,20 +326,22 @@ const ageLabel = y => { const a = ageAt(y); return a===null ? "" : `  ·  ${a}�
 
 /* ── 렌더 ─────────────────────────────────────────────────── */
 function build(){
-  EV = D.events;
-  heroEl.querySelector("h1").textContent = D.name || "";
+  EV = list();
+  heroEl.querySelector("h1").textContent =
+    isTalk() ? (D.talkTitle || "사람들이 본 나") : (D.name || "");
   linesEl.innerHTML = "";
   nodes = EV.map((e,i)=>{
     const el = document.createElement("div");
     el.className = "ev";
-    el.textContent = e.label;
+    el.textContent = labelOf(e);
     // 맨 위에서는 초점이 이미 0번에 있어 첫 글자를 눌러도 안 움직였다.
     // 보기 모드에서는 항상 이동한다. 편집 중일 때만, 지금 고치는 글자를
     // 누른 경우를 빼고 이동한다(커서를 놓으려는 클릭이므로).
     el.addEventListener("click", ()=>{ if(!EDIT || i!==idx) jumpTo(i); });
     if (EDIT){
       el.addEventListener("input", ()=>{
-        EV[i].label = el.textContent.replace(/\n/g," ").trim();
+        const v = el.textContent.replace(/\n/g," ").trim();
+        if(isTalk()) EV[i].keyword = v; else EV[i].label = v;
         markDirty(); fit(el);
       });
       el.addEventListener("keydown", ev=>{
@@ -301,6 +352,11 @@ function build(){
     return el;
   });
   idx = -1;
+  document.body.classList.toggle("talk", isTalk());
+  modeBtn.textContent = isTalk() ? "← 인생 그래프" : "지인 인터뷰 →";
+  // 인터뷰가 비어 있으면 방문자에게는 전환 버튼을 보이지 않는다
+  modeBtn.classList.toggle("show", EDIT || (D.interviews||[]).length > 0);
+  if(EDIT && !EV.length) say("아직 비어 있습니다 · 「+ 아래에 추가」로 시작하세요");
   if(EDIT){
     // toISOString()을 거치면 UTC로 넘어가며 하루가 밀린다. 문자열을 그대로 쓴다.
     $("#e-birth").value = /^\d{4}-\d{2}-\d{2}$/.test(D.birth||"") ? D.birth
@@ -333,6 +389,7 @@ function layout(){
 }
 
 const offsetOf = s => (1 - (clamp(s,-5,5)+5)/10) * L.maxOff;
+const offsetAt = i => isTalk() ? 0 : offsetOf(EV[i].score);
 
 function update(){
   const p = scrollY/L.step - 1.75;
@@ -343,7 +400,7 @@ function update(){
       el.style.visibility="hidden"; continue;
     }
     el.style.visibility="visible";
-    el.style.transform=`translate3d(${-offsetOf(EV[i].score)}px,${y-L.fs*0.62}px,0)`;
+    el.style.transform=`translate3d(${-offsetAt(i)}px,${y-L.fs*0.62}px,0)`;
     const near=ease(clamp(1-d,0,1)), far=clamp(1-d/4.6,0,1);
     el.style.color=`rgba(var(--ink),${(0.10+0.90*near)*far})`;
   }
@@ -366,15 +423,23 @@ function focus(i){
   if(idx>=0 && nodes[idx]) nodes[idx].removeAttribute("contenteditable");
   idx = i;
   const e = EV[i]; if(!e) return;
-  pMeta.textContent = e.year + ageLabel(e.year);
+  pMeta.textContent = isTalk()
+    ? [e.who, e.relation].filter(Boolean).join("  ·  ")
+    : e.year + ageLabel(e.year);
   pBody.textContent = e.body || "";
   if(EDIT){
     nodes[i].setAttribute("contenteditable","plaintext-only");
-    $("#e-year").value = e.year;
-    $("#e-age").textContent = ageLabel(e.year).replace(/^\s*·\s*/,"");
-    $("#e-score").value = e.score;
-    $("#e-sv").textContent = (e.score>0?"+":"") + e.score;
-    $("#e-body").value = e.body || "";
+    if(isTalk()){
+      $("#t-who").value  = e.who || "";
+      $("#t-rel").value  = e.relation || "";
+      $("#t-body").value = e.body || "";
+    }else{
+      $("#e-year").value = e.year;
+      $("#e-age").textContent = ageLabel(e.year).replace(/^\s*·\s*/,"");
+      $("#e-score").value = e.score;
+      $("#e-sv").textContent = (e.score>0?"+":"") + e.score;
+      $("#e-body").value = e.body || "";
+    }
   }
 }
 
@@ -387,6 +452,15 @@ function jumpTo(i){
     if(scrollY === from && Math.abs(top-from) > 2) scrollTo({top, behavior:"instant"});
   }, 150);
 }
+
+/* 화면을 갈아끼운다. 둘은 다른 글이라 스크롤도 처음부터 다시 시작한다. */
+function setMode(m){
+  mode = m;
+  scrollTo({top:0, behavior:"instant"});
+  lastY = -1;
+  build();
+}
+modeBtn.addEventListener("click", ()=> setMode(isTalk() ? "graph" : "talk"));
 
 /* ── 편집 ─────────────────────────────────────────────────── */
 function refreshAges(){
@@ -413,20 +487,32 @@ function initEdit(){
   try{
     const d = JSON.parse(localStorage.getItem(DRAFT) || "null");
     if(d && Array.isArray(d.events) && d.events.length){
-      D = d; dirty = true;
+      D = d; D.interviews ||= []; dirty = true;
       say("지난 초안을 불러왔습니다");
     }
   }catch(e){}
 
   const h1 = heroEl.querySelector("h1");
   h1.setAttribute("contenteditable","plaintext-only");
-  h1.addEventListener("input",()=>{ D.name=h1.textContent.trim(); markDirty(); });
+  h1.addEventListener("input",()=>{
+    const v = h1.textContent.trim();
+    if(isTalk()) D.talkTitle = v; else D.name = v;
+    markDirty();
+  });
 
   $("#e-birth").addEventListener("input",e=>{
     D.birth = e.target.value;
     delete D.birthYear;
     refreshAges(); markDirty();
   });
+  $("#t-who").addEventListener("input",e=>{ EV[idx].who = e.target.value;
+    pMeta.textContent = [EV[idx].who, EV[idx].relation].filter(Boolean).join("  ·  ");
+    markDirty(); });
+  $("#t-rel").addEventListener("input",e=>{ EV[idx].relation = e.target.value;
+    pMeta.textContent = [EV[idx].who, EV[idx].relation].filter(Boolean).join("  ·  ");
+    markDirty(); });
+  $("#t-body").addEventListener("input",e=>{ EV[idx].body = e.target.value; markDirty(); });
+
   $("#e-year").addEventListener("input",e=>{
     const v = parseInt(e.target.value,10);
     if(!isNaN(v)){ EV[idx].year=v;
@@ -464,12 +550,16 @@ function download(){
 function act(a){
   if(a==="add"){
     const cur = EV[idx];
-    EV.splice(idx+1,0,{year:(cur?.year||2000)+1,label:"새 사건",score:0,body:""});
-    const to = idx+1; markDirty(); build(); requestAnimationFrame(()=>jumpTo(to));
+    const item = isTalk()
+      ? {who:"", relation:"", keyword:"새 인터뷰", body:""}
+      : {year:(cur?.year||2000)+1, label:"새 사건", score:0, body:""};
+    const to = Math.max(idx,-1) + 1;      // 비어 있으면 0번에 넣는다
+    EV.splice(to,0,item);
+    markDirty(); build(); requestAnimationFrame(()=>jumpTo(to));
   }
   if(a==="del"){
-    if(EV.length<=1) return;
-    if(!confirm(`"${EV[idx].label}" 을 지울까요?`)) return;
+    if(EV.length<1 || idx<0) return;
+    if(!confirm(`"${labelOf(EV[idx])}" 을 지울까요?`)) return;
     EV.splice(idx,1);
     const to = clamp(idx,0,EV.length-1); markDirty(); build();
     requestAnimationFrame(()=>jumpTo(to));
@@ -499,7 +589,7 @@ addEventListener("resize", layout);
 
 (function init(){
   if(EDIT) initEdit();
-  else if(LOCAL){
+  if(!EDIT && LOCAL){
     // 편집은 내 컴퓨터에서만. 배포된 사이트에는 이 버튼이 없다.
     editBtn.classList.add("show");
     editBtn.addEventListener("click",()=>{ location.href = location.pathname + "?edit"; });
