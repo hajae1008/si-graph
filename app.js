@@ -121,6 +121,10 @@ const labelOf = e => (isTalk() ? e.q : e.label) || "";
 let EV = D.events;
 let nodes = [], L = {}, idx = -1, dirty = false;
 
+/* 첫 항목이 초점에 닿기까지 앞에 두는 여백(스크롤 몇 칸인지).
+   그래프는 이름이 한 화면을 쓰고, 인터뷰는 제목이 머리말로 붙어 있다. */
+const LEAD = () => isTalk() ? 0.15 : 1.75;
+
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const ease=t=>1-Math.pow(1-t,2.4);
 
@@ -216,7 +220,7 @@ function layout(){
   L.avail = w - L.pad - L.maxOff - panelBlock - 12;
 
   nodes.forEach(fit);
-  scroller.style.height = ((EV.length + 0.75)*L.step + h) + "px";
+  scroller.style.height = ((EV.length - 1 + LEAD())*L.step + h) + "px";
   update();
 }
 
@@ -224,7 +228,7 @@ const offsetOf = s => (1 - (clamp(s,-5,5)+5)/10) * L.maxOff;
 const offsetAt = i => isTalk() ? 0 : offsetOf(EV[i].score);
 
 function update(){
-  const p = scrollY/L.step - 1.75;
+  const p = scrollY/L.step - LEAD();
 
   for(let i=0;i<nodes.length;i++){
     const d=Math.abs(i-p), y=L.axis+(i-p)*L.gap, el=nodes[i];
@@ -245,10 +249,10 @@ function update(){
   panelEl.style.opacity = (EDIT || !EV.length) ? 1
     : ((p>-0.5 && p<EV.length-0.5) ? near : 0);
 
-  const heroA = clamp(-(p+0.55)/0.7,0,1);
+  const heroA = isTalk() ? 1 : clamp(-(p+0.55)/0.7,0,1);
   heroEl.style.opacity = heroA;
   // 투명한 카드가 화면 전체를 덮고 클릭을 삼키지 않도록
-  heroEl.style.pointerEvents = (EDIT && heroA > 0.5) ? "auto" : "none";
+  heroEl.style.pointerEvents = EDIT ? "auto" : "none";
 }
 
 /* 초점이 바뀔 때만 패널·편집 대상을 갈아끼운다 */
@@ -331,7 +335,7 @@ function renderAnswerFields(g){
 /* 부드러운 스크롤을 조용히 무시하는 환경이 있다.
    잠시 뒤에도 제자리면 그냥 옮긴다. 클릭이 먹통이 되는 것보다 낫다. */
 function jumpTo(i){
-  const top = (i+1.75)*L.step, from = scrollY;
+  const top = (i+LEAD())*L.step, from = scrollY;
   scrollTo({top, behavior:"smooth"});
   setTimeout(()=>{
     if(scrollY === from && Math.abs(top-from) > 2) scrollTo({top, behavior:"instant"});
