@@ -21,6 +21,13 @@
     transform-origin:100% 50%;will-change:transform,color;
     pointer-events:auto;cursor:pointer;outline:none;
   }
+  /* 질문은 속삭이고 답변은 말한다. 크기와 무게로 갈린다. */
+  .ev.q{font-weight:500;letter-spacing:-.015em;opacity:.85}
+  /* 질문 줄에서는 답변용 칸을 접는다 */
+  body.edit.qrow #t-who,
+  body.edit.qrow #t-rel,
+  body.edit.qrow #t-body{display:none}
+  body.edit.qrow .fld{display:none}
   body.edit .ev[contenteditable]{cursor:text}
   body.edit .ev[contenteditable]:focus{box-shadow:0 2px 0 rgba(var(--ink),.22)}
 

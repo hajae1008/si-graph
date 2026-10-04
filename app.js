@@ -100,8 +100,20 @@ const DRAFT = "lg.draft";
    타이포 방식은 같지만 talk 에는 점수가 없어 좌우로 밀지 않는다. */
 const mode = (window.PAGE === "talk") ? "talk" : "graph";
 const isTalk = () => mode === "talk";
-const list   = () => isTalk() ? (D.interviews ||= []) : D.events;
-const labelOf = e => (isTalk() ? e.keyword : e.label) || "";
+const SRC    = () => isTalk() ? (D.interviews ||= []) : D.events;
+const labelOf = e => (isTalk() ? e.text : e.label) || "";
+
+/* 같은 질문에 답이 여럿이면 질문은 한 번만 세운다. */
+function expand(src){
+  const rows = []; let prevQ = null;
+  src.forEach((e,si)=>{
+    if(e.q && e.q !== prevQ){ rows.push({kind:"q", text:e.q, ref:e, si}); prevQ = e.q; }
+    rows.push({kind:"a", text:e.keyword, ref:e, si});
+  });
+  return rows;
+}
+const list = () => isTalk() ? expand(SRC()) : D.events;
+const isQ  = i => isTalk() && EV[i] && EV[i].kind === "q";
 
 let EV = D.events;
 let nodes = [], L = {}, idx = -1, dirty = false;
@@ -139,7 +151,7 @@ function build(){
   linesEl.innerHTML = "";
   nodes = EV.map((e,i)=>{
     const el = document.createElement("div");
-    el.className = "ev";
+    el.className = "ev" + (e.kind === "q" ? " q" : "");
     el.textContent = labelOf(e);
     // 맨 위에서는 초점이 이미 0번에 있어 첫 글자를 눌러도 안 움직였다.
     // 보기 모드에서는 항상 이동한다. 편집 중일 때만, 지금 고치는 글자를
@@ -148,7 +160,14 @@ function build(){
     if (EDIT){
       el.addEventListener("input", ()=>{
         const v = el.textContent.replace(/\n/g," ").trim();
-        if(isTalk()) EV[i].keyword = v; else EV[i].label = v;
+        if(!isTalk())            EV[i].label = v;
+        else if(EV[i].kind==="q"){
+          // 한 질문에 답이 여럿이면 그 묶음 전체를 같이 고친다.
+          // 하나만 바꾸면 질문이 둘로 갈라진다.
+          const src = SRC(), from = EV[i].si, was = src[from].q;
+          for(let k=from; k<src.length && src[k].q === was; k++) src[k].q = v;
+        }
+        else                      EV[i].ref.keyword = v;
         markDirty(); fit(el);
       });
       el.addEventListener("keydown", ev=>{
@@ -179,9 +198,10 @@ function build(){
 }
 
 function fit(el){
-  el.style.fontSize = L.fs + "px";
+  const base = el.classList.contains("q") ? L.fs*0.34 : L.fs;
+  el.style.fontSize = base + "px";
   const nat = el.offsetWidth;
-  if (nat > L.avail) el.style.fontSize = (L.fs * L.avail / nat) + "px";
+  if (nat > L.avail) el.style.fontSize = (base * L.avail / nat) + "px";
 }
 
 function layout(){
@@ -213,7 +233,8 @@ function update(){
       el.style.visibility="hidden"; continue;
     }
     el.style.visibility="visible";
-    el.style.transform=`translate3d(${-offsetAt(i)}px,${y-L.fs*0.62}px,0)`;
+    const fs = parseFloat(el.style.fontSize) || L.fs;
+    el.style.transform=`translate3d(${-offsetAt(i)}px,${y-fs*0.62}px,0)`;
     const near=ease(clamp(1-d,0,1)), far=clamp(1-d/4.6,0,1);
     el.style.color=`rgba(var(--ink),${(0.10+0.90*near)*far})`;
   }
@@ -236,16 +257,18 @@ function focus(i){
   if(idx>=0 && nodes[idx]) nodes[idx].removeAttribute("contenteditable");
   idx = i;
   const e = EV[i]; if(!e) return;
-  pMeta.textContent = isTalk()
-    ? [e.who, e.relation].filter(Boolean).join("  ·  ")
-    : e.year + ageLabel(e.year);
-  pBody.textContent = e.body || "";
+  const r = isTalk() ? e.ref : e;
+  const q = isQ(i);
+  pMeta.textContent = !isTalk() ? e.year + ageLabel(e.year)
+    : (q ? "질문" : [r.who, r.relation].filter(Boolean).join("  ·  "));
+  pBody.textContent = (isTalk() ? (q ? "" : r.body) : e.body) || "";
   if(EDIT){
     nodes[i].setAttribute("contenteditable","plaintext-only");
     if(isTalk()){
-      $("#t-who").value  = e.who || "";
-      $("#t-rel").value  = e.relation || "";
-      $("#t-body").value = e.body || "";
+      document.body.classList.toggle("qrow", q);
+      $("#t-who").value  = r.who || "";
+      $("#t-rel").value  = r.relation || "";
+      $("#t-body").value = r.body || "";
     }else{
       $("#e-year").value = e.year;
       $("#e-age").textContent = ageLabel(e.year).replace(/^\s*·\s*/,"");
@@ -315,13 +338,13 @@ function initEdit(){
     delete D.birthYear;
     refreshAges(); markDirty();
   });
-  $("#t-who").addEventListener("input",e=>{ EV[idx].who = e.target.value;
-    pMeta.textContent = [EV[idx].who, EV[idx].relation].filter(Boolean).join("  ·  ");
+  $("#t-who").addEventListener("input",e=>{ EV[idx].ref.who = e.target.value;
+    pMeta.textContent = [EV[idx].ref.who, EV[idx].ref.relation].filter(Boolean).join("  ·  ");
     markDirty(); });
-  $("#t-rel").addEventListener("input",e=>{ EV[idx].relation = e.target.value;
-    pMeta.textContent = [EV[idx].who, EV[idx].relation].filter(Boolean).join("  ·  ");
+  $("#t-rel").addEventListener("input",e=>{ EV[idx].ref.relation = e.target.value;
+    pMeta.textContent = [EV[idx].ref.who, EV[idx].ref.relation].filter(Boolean).join("  ·  ");
     markDirty(); });
-  $("#t-body").addEventListener("input",e=>{ EV[idx].body = e.target.value; markDirty(); });
+  $("#t-body").addEventListener("input",e=>{ EV[idx].ref.body = e.target.value; markDirty(); });
 
   $("#e-year").addEventListener("input",e=>{
     const v = parseInt(e.target.value,10);
@@ -334,7 +357,7 @@ function initEdit(){
     markDirty(); update();
   });
   $("#e-body").addEventListener("input",e=>{
-    EV[idx].body = e.target.value; markDirty();
+    EV[idx].ref.body = e.target.value; markDirty();
   });
 
   document.querySelectorAll("[data-act]").forEach(b=>{
@@ -360,16 +383,27 @@ function download(){
 function act(a){
   if(a==="add"){
     const cur = EV[idx];
-    const item = isTalk()
-      ? {who:"", relation:"", keyword:"새 인터뷰", body:""}
-      : {year:(cur?.year||2000)+1, label:"새 사건", score:0, body:""};
+    if(isTalk()){
+      const src = SRC(), at = (cur ? cur.si : -1) + 1;
+      src.splice(at,0,{who:cur?.ref.who||"", relation:cur?.ref.relation||"",
+                       q:cur?.ref.q||"", keyword:"새 답변", body:""});
+      markDirty(); build();
+      const to = EV.findIndex(r=>r.si===at && r.kind==="a");
+      requestAnimationFrame(()=>jumpTo(Math.max(to,0)));
+      return;
+    }
     const to = Math.max(idx,-1) + 1;      // 비어 있으면 0번에 넣는다
-    EV.splice(to,0,item);
+    EV.splice(to,0,{year:(cur?.year||2000)+1, label:"새 사건", score:0, body:""});
     markDirty(); build(); requestAnimationFrame(()=>jumpTo(to));
   }
   if(a==="del"){
     if(EV.length<1 || idx<0) return;
     if(!confirm(`"${labelOf(EV[idx])}" 을 지울까요?`)) return;
+    if(isTalk()){
+      const si = EV[idx].si; SRC().splice(si,1);
+      markDirty(); build(); requestAnimationFrame(()=>jumpTo(Math.max(0,Math.min(idx,EV.length-1))));
+      return;
+    }
     EV.splice(idx,1);
     const to = clamp(idx,0,EV.length-1); markDirty(); build();
     requestAnimationFrame(()=>jumpTo(to));
