@@ -239,7 +239,14 @@ function update(){
     const fs = parseFloat(el.style.fontSize) || L.fs;
     el.style.transform=`translate3d(${-offsetAt(i)}px,${y-fs*0.62}px,0)`;
     const near=ease(clamp(1-d,0,1)), far=clamp(1-d/(isTalk()?6.5:4.6),0,1);
-    el.style.color=`rgba(var(--ink),${(0.10+0.90*near)*far})`;
+    let alpha = (0.10+0.90*near)*far;
+    if(isTalk()){
+      // 초점 위로 지나간 질문은 제목과 겹치기 전에 완전히 지운다.
+      const cut = L.axis - L.gap*0.85;
+      alpha *= clamp((y - cut)/(L.gap*0.7), 0, 1);
+      if(alpha < 0.02){ el.style.visibility="hidden"; continue; }
+    }
+    el.style.color=`rgba(var(--ink),${alpha})`;
   }
 
   const ni = clamp(Math.round(p),0,EV.length-1);
