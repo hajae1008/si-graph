@@ -222,39 +222,60 @@
     #kicker{opacity:0}
   }
 
-  /* ── 역할극 공연: 대본 읽는 페이지 ── */
-  .script{max-width:660px;margin:0 auto;padding:7vh var(--pad) 16vh}
-  .script-head{margin-bottom:12vh}
-  .script h1{margin:0 0 18px;font-size:clamp(27px,4.3vw,54px);font-weight:700;
-    letter-spacing:-.038em;line-height:1.14}
-  .script .meta{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
-    color:rgba(var(--ink),.45);line-height:2.1}
-  .script .sep{margin:0 10px;color:rgba(var(--ink),.25)}
+  /* ── 역할극 공연 ── */
+  .script{max-width:680px;margin:0 auto;padding:7vh var(--pad) 16vh}
 
-  .sc{margin-top:11vh}
-  .sc:first-of-type{margin-top:0}
-  .sc h2{display:flex;align-items:baseline;gap:14px;margin:0 0 34px;
-    font-size:clamp(20px,2.7vw,31px);font-weight:700;letter-spacing:-.03em}
-  .sc h2 span{font-family:var(--mono);font-size:11px;font-weight:400;
-    letter-spacing:.16em;color:rgba(var(--ink),.3)}
+  .script-head{margin-bottom:13vh}
+  .script h1{margin:0 0 22px;font-size:clamp(29px,4.6vw,58px);font-weight:700;
+    letter-spacing:-.04em;line-height:1.12}
+  .logline{margin:0 0 34px;font-size:17px;line-height:1.75;letter-spacing:-.015em;
+    color:rgba(var(--ink),.72);white-space:pre-wrap}
+  .facts{display:grid;grid-template-columns:auto 1fr;gap:9px 20px;margin:0;
+    padding-top:22px;border-top:1px solid rgba(var(--ink),.12)}
+  .facts dt{font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+    color:rgba(var(--ink),.38);padding-top:2px}
+  .facts dd{margin:0;font-size:14px;letter-spacing:-.01em;color:rgba(var(--ink),.8)}
+
+  .sc{margin-top:12vh}
+  .sc h2{display:flex;align-items:baseline;gap:16px;margin:0 0 20px;
+    font-size:clamp(23px,3vw,34px);font-weight:700;letter-spacing:-.032em;line-height:1.2}
+  .sc h2 .no{font-family:var(--mono);font-size:12px;font-weight:400;
+    letter-spacing:.16em;color:rgba(var(--ink),.3);flex:0 0 auto}
   .sc h2 em{font-style:normal}
 
-  /* 지문 — 물러나 있다 */
-  .dir{margin:26px 0;padding-left:15px;font-size:13.5px;line-height:1.85;
-    color:rgba(var(--ink),.4);border-left:1px solid rgba(var(--ink),.12)}
+  .summary{margin:0 0 26px;padding-left:44px;font-size:16px;line-height:1.8;
+    letter-spacing:-.013em;color:rgba(var(--ink),.74)}
 
-  /* 대사 — 화자는 작게, 말은 크게 */
-  .say{margin:22px 0}
-  .say .who{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
-    color:rgba(var(--ink),.42);margin-bottom:7px}
+  /* 그 장면에서 가장 센 말 한 마디 */
+  .quote{margin:0 0 24px;padding:0 0 0 44px}
+  .quote p{margin:0;font-size:clamp(19px,2.1vw,25px);font-weight:600;
+    letter-spacing:-.028em;line-height:1.5;color:rgb(var(--ink));white-space:pre-wrap}
+  .quote p::before{content:"“"}
+  .quote p::after{content:"”"}
+
+  .showbtn{
+    margin-left:44px;font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+    background:none;border:0;border-bottom:1px solid rgba(var(--ink),.25);
+    padding:5px 0;cursor:pointer;color:rgba(var(--ink),.5);
+  }
+  .showbtn:hover{color:rgb(var(--ink));border-bottom-color:rgb(var(--ink))}
+  .showbtn.on{color:rgb(var(--ink));border-bottom-color:rgb(var(--ink))}
+
+  /* 펼친 대본 — 접혀 있다 나오는 글이라 안쪽으로 한 단 들인다 */
+  .lines{margin:30px 0 0 44px;padding:30px 0 6px;
+    border-top:1px solid rgba(var(--ink),.12)}
+  .dir{margin:24px 0;padding-left:15px;font-size:14px;line-height:1.8;
+    color:rgba(var(--ink),.5);border-left:2px solid rgba(var(--ink),.14)}
+  .say{margin:20px 0}
+  .say .who{font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+    color:rgba(var(--ink),.4);margin-bottom:6px}
   .say.lead .who{color:rgb(var(--ink))}
-  .say p{margin:0;font-size:16px;line-height:1.9;letter-spacing:-.013em;
-    color:rgba(var(--ink),.88);white-space:pre-wrap}
-  .say.cont{margin-top:-6px}        /* 이어지는 말은 바싹 붙인다 */
+  .say p{margin:0;font-size:16px;line-height:1.85;letter-spacing:-.014em;
+    color:rgba(var(--ink),.92);white-space:pre-wrap}
+  .say.cont{margin-top:-4px}
 
-  /* 이 페이지의 길잡이는 문서 흐름 안에 둔다 */
   .pagenav{display:flex;gap:20px;flex-wrap:wrap;margin:0 0 9vh}
-  .sc + .pagenav{margin:11vh 0 0}
+  .sc + .pagenav{margin:13vh 0 0}
   .pagenav a{font-family:var(--mono);font-size:10px;letter-spacing:.16em;
     color:rgb(var(--ink));text-decoration:none}
   .pagenav a.dim{color:rgba(var(--ink),.38)}
@@ -262,5 +283,9 @@
 
   @media (max-width:719px){
     .script{padding:5vh var(--pad) 12vh}
-    .say p{font-size:15px;line-height:1.85}
+    .logline{font-size:15.5px}
+    .summary,.quote,.showbtn,.lines{padding-left:0;margin-left:0}
+    .summary{font-size:15px}
+    .lines{margin-top:26px}
+    .say p{font-size:15.5px}
   }

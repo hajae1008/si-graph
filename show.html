@@ -11,8 +11,8 @@
 <article class="script" id="script"></article>
 <script src="data.js"></script>
 <script>
-/* 대본은 목록이 아니라 이어서 읽는 글이라, 스크롤 스택을 쓰지 않는다.
-   지문·화자·대사 세 겹을 각각 다른 무게로 세운다. */
+/* 대본 80줄을 통째로 펼치면 무엇이 중요한지 보이지 않는다.
+   요약과 인용을 앞에 세우고, 대본은 눌렀을 때만 펼친다. */
 (function(){
   const S = window.LIFE?.show;
   const root = document.getElementById("script");
@@ -36,38 +36,65 @@
 
   root.appendChild(nav());
 
+  // ── 머리말
   const head = el("header","script-head");
   head.appendChild(el("h1", null, S.title));
-  const meta = el("div","meta");
-  [S.cast, S.duration].filter(Boolean).forEach((t,i)=>{
-    if(i) meta.appendChild(el("span","sep","/"));
-    meta.appendChild(el("span", null, t));
+  if(S.logline) head.appendChild(el("p","logline", S.logline));
+  const facts = el("dl","facts");
+  [["출연", S.cast], ["길이", S.duration], ["소품", S.props]].forEach(([k,v])=>{
+    if(!v) return;
+    facts.appendChild(el("dt", null, k));
+    facts.appendChild(el("dd", null, v));
   });
-  head.appendChild(meta);
-  if(S.props) head.appendChild(el("div","meta", "소품: " + S.props));
+  head.appendChild(facts);
   root.appendChild(head);
 
+  // ── 장면
   S.scenes.forEach((sc, i) => {
     const sec = el("section","sc");
-    const h2  = el("h2");
-    h2.appendChild(el("span", null, String(i+1).padStart(2,"0")));
+
+    const h2 = el("h2");
+    h2.appendChild(el("span","no", String(i+1).padStart(2,"0")));
     h2.appendChild(el("em", null, sc.title));
     sec.appendChild(h2);
 
+    if(sc.summary) sec.appendChild(el("p","summary", sc.summary));
+    if(sc.quote){
+      const q = el("blockquote","quote");
+      q.appendChild(el("p", null, sc.quote));
+      sec.appendChild(q);
+    }
+
+    // 대본은 접어 둔다
+    const body = el("div","lines");
+    body.hidden = true;
     sc.lines.forEach(ln => {
-      if(ln.d){                                   // 지문
-        sec.appendChild(el("p","dir", "(" + ln.d + ")"));
-      }else if(ln.w){                             // 새 화자의 대사
+      if(ln.d){
+        body.appendChild(el("p","dir", "(" + ln.d + ")"));
+      }else if(ln.w){
         const box = el("div","say" + (ln.w === S.lead ? " lead" : ""));
         box.appendChild(el("div","who", ln.w));
         box.appendChild(el("p", null, ln.t));
-        sec.appendChild(box);
-      }else if(ln.c){                             // 같은 사람이 이어서
+        body.appendChild(box);
+      }else if(ln.c){
         const box = el("div","say cont");
         box.appendChild(el("p", null, ln.c));
-        sec.appendChild(box);
+        body.appendChild(box);
       }
     });
+
+    const toggle = el("button","showbtn","대본 보기");
+    toggle.setAttribute("aria-expanded","false");
+    toggle.addEventListener("click", ()=>{
+      const open = body.hidden;
+      body.hidden = !open;
+      toggle.textContent = open ? "대본 접기" : "대본 보기";
+      toggle.setAttribute("aria-expanded", String(open));
+      toggle.classList.toggle("on", open);
+    });
+
+    sec.appendChild(toggle);
+    sec.appendChild(body);
     root.appendChild(sec);
   });
 
