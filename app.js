@@ -56,7 +56,10 @@ document.body.insertAdjacentHTML("afterbegin", `
       <h1></h1>
     </div>
 
-    <button class="mono-btn" id="modebtn"></button>
+    <div id="nav">
+      <button class="mono-btn" id="homebtn">처음</button>
+      <button class="mono-btn" id="modebtn"></button>
+    </div>
     <button class="mono-btn" id="editbtn">수정하기 →</button>
     <button class="mono-btn" id="done">← 편집 완료</button>
   </div>
@@ -90,7 +93,8 @@ const $ = s => document.querySelector(s);
 const scroller=$("#scroller"), linesEl=$("#lines"), panelEl=$("#panel");
 const heroEl=$("#hero");
 const pQ=$("#p-q"), pMeta=$("#p-meta"), pBody=$("#p-body"), ansEl=$("#p-answers");
-const editBtn=$("#editbtn"), statusEl=$("#status"), modeBtn=$("#modebtn");
+const editBtn=$("#editbtn"), statusEl=$("#status");
+const modeBtn=$("#modebtn"), homeBtn=$("#homebtn");
 
 /* 데이터가 코드 안에 있으므로 배포본에서 고쳐봐야 갈 곳이 없다.
    편집은 내 컴퓨터에서만 연다. */
@@ -123,7 +127,7 @@ let nodes = [], L = {}, idx = -1, dirty = false;
 
 /* 첫 항목이 초점에 닿기까지 앞에 두는 여백(스크롤 몇 칸인지).
    그래프는 이름이 한 화면을 쓰고, 인터뷰는 제목이 머리말로 붙어 있다. */
-const LEAD = () => isTalk() ? 0.15 : 1.75;
+const LEAD = () => isTalk() ? 0 : 1.75;
 
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const ease=t=>1-Math.pow(1-t,2.4);
@@ -182,7 +186,7 @@ function build(){
   document.body.classList.toggle("talk", isTalk());
   modeBtn.textContent = isTalk() ? "← 인생 그래프" : "지인 인터뷰 →";
   // 늘 보인다. 조건을 걸면 정작 찾아야 할 때 안 보인다.
-  modeBtn.classList.add("show");
+  $("#nav").classList.add("show");
   if(!EV.length){
     pMeta.textContent = "";
     pBody.textContent = isTalk()
@@ -351,9 +355,10 @@ function jumpTo(i){
 
 /* 다른 페이지로 건너간다. 편집 중이었다면 저쪽도 편집 상태로 연다. */
 modeBtn.addEventListener("click", ()=>{
-  const to = isTalk() ? "index.html" : "interview.html";
+  const to = isTalk() ? "graph.html" : "interview.html";
   location.href = to + (EDIT ? "?edit" : "");
 });
+homeBtn.addEventListener("click", ()=>{ location.href = "index.html"; });
 
 /* ── 편집 ─────────────────────────────────────────────────── */
 function refreshAges(){
@@ -489,6 +494,26 @@ function act(a){
 let lastY = -1;
 function sync(){ if(scrollY!==lastY){ lastY=scrollY; update(); } }
 (function tick(){ sync(); requestAnimationFrame(tick); })();
+/* 방향키로 한 칸씩 옮긴다. 스크롤 위치에서 다음·이전 칸을 셈하므로
+   맨 위(아직 첫 항목에 닿기 전)에서 아래를 누르면 첫 항목으로 간다. */
+addEventListener("keydown", e=>{
+  if(e.metaKey || e.ctrlKey || e.altKey) return;
+  const t = e.target;
+  if(t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+  if(!EV.length) return;
+
+  const p = scrollY/L.step - LEAD();
+  let to;
+  if(e.key==="ArrowDown" || e.key==="PageDown")    to = Math.floor(p + 1e-6) + 1;
+  else if(e.key==="ArrowUp" || e.key==="PageUp")   to = Math.ceil(p - 1e-6) - 1;
+  else if(e.key==="Home")                          to = 0;
+  else if(e.key==="End")                           to = EV.length - 1;
+  else return;
+
+  e.preventDefault();
+  jumpTo(clamp(to, 0, EV.length-1));
+});
+
 addEventListener("scroll", sync, {passive:true});
 addEventListener("visibilitychange", sync);
 addEventListener("resize", layout);

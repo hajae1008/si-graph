@@ -3,13 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>인생 그래프 · 99 박주연</title>
+<title>99 박주연</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<script>window.PAGE = "graph";</script>
+<div class="land">
+  <div class="land-name"></div>
+  <nav>
+    <a href="graph.html">인생 그래프</a>
+    <a href="interview.html">지인 인터뷰</a>
+  </nav>
+</div>
 <script src="data.js"></script>
-<script src="app.js"></script>
+<script>
+  // 이름은 data.js 한 군데에만 둔다
+  document.querySelector(".land-name").textContent = window.LIFE?.name || "";
+  document.title = window.LIFE?.name || document.title;
+</script>
 </body>
 </html>

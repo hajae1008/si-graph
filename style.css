@@ -155,19 +155,33 @@
     font-family:var(--mono);font-size:10px;letter-spacing:.2em;
     color:rgba(var(--ink),.34)}
   /* 좌하단 한 자리를 보기/편집이 번갈아 쓴다 */
+  /* ── 첫 화면: 둘 중 하나를 고른다 ── */
+  .land{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;
+    justify-content:center;padding:0 var(--pad)}
+  .land-name{font-family:var(--mono);font-size:11px;letter-spacing:.18em;
+    color:rgba(var(--ink),.4);margin-bottom:30px}
+  .land nav{display:flex;flex-direction:column;gap:4px}
+  .land a{
+    font-size:clamp(38px,8vw,104px);font-weight:700;letter-spacing:-.04em;
+    line-height:1.08;color:rgba(var(--ink),.15);text-decoration:none;
+    width:max-content;transition:color .22s ease;
+  }
+  .land a:hover,.land a:focus-visible{color:rgb(var(--ink));outline:none}
+
+  /* 아래쪽 길잡이 두 갈래 */
+  #nav{position:absolute;right:var(--pad);bottom:var(--pad);
+    display:none;gap:20px;align-items:center}
+  #nav.show{display:flex}
+  #homebtn{color:rgba(var(--ink),.38)}
+  #modebtn{color:rgb(var(--ink))}
   #editbtn,#done{
     position:absolute;left:var(--pad);bottom:var(--pad);
     display:none;color:rgb(var(--ink));
   }
   #editbtn.show{display:block}
   /* 우하단: 인생 그래프 ↔ 지인 인터뷰 */
-  #modebtn{
-    position:absolute;right:var(--pad);bottom:var(--pad);
-    display:none;color:rgb(var(--ink));
-  }
-  #modebtn.show{display:block}
   /* 편집 중에는 우하단을 툴바가 쓴다. 한 줄 위로 비켜준다. */
-  @media (min-width:720px){ body.edit #modebtn{bottom:calc(var(--pad) + 46px)} }
+  @media (min-width:720px){ body.edit #nav{bottom:calc(var(--pad) + 46px)} }
   body.edit #editbtn{display:none}
   body.edit #done{display:block}
 
