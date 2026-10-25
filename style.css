@@ -75,11 +75,10 @@
     letter-spacing:-.01em;margin:0;white-space:pre-wrap}
 
   /* ── 왼쪽 패널 · 편집 ──────────────────────── */
-  #p-edit,#p-edit-talk,#p-edit-show{display:none}
+  #p-edit,#p-edit-talk{display:none}
   body.edit #p-view{display:none}
   body.edit:not(.flip) #p-edit{display:block}
   body.edit.talk       #p-edit-talk{display:block}
-  body.edit.show       #p-edit-show{display:block}
   .fld{display:flex;align-items:center;gap:10px;margin-bottom:14px}
   .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;
     color:rgba(var(--ink),.34);flex:0 0 34px}
@@ -90,19 +89,6 @@
     border-left:2px solid rgba(var(--ink),.5);padding:0 0 0 11px;outline:none;
   }
   #t-q::placeholder{color:rgba(var(--ink),.25)}
-  #s-note{
-    font-family:var(--mono);font-size:11px;letter-spacing:.12em;flex:1;
-    background:none;border:0;border-bottom:1px solid rgba(var(--ink),.16);
-    color:rgb(var(--ink));padding:3px 0;outline:none;
-  }
-  #s-note:focus{border-bottom-color:rgb(var(--ink))}
-  #s-body{
-    width:100%;min-height:150px;resize:vertical;margin-top:4px;
-    font-family:var(--sans);font-size:13.5px;line-height:1.75;letter-spacing:-.01em;
-    color:rgba(var(--ink),.75);background:none;border:0;
-    border-left:1px solid rgba(var(--ink),.14);padding:2px 0 2px 12px;outline:none;
-  }
-  #s-body::placeholder,#s-note::placeholder{color:rgba(var(--ink),.25)}
   #t-who,#t-rel{
     font-family:var(--sans);font-size:14px;letter-spacing:-.01em;flex:1;
     background:none;border:0;border-bottom:1px solid rgba(var(--ink),.16);
@@ -230,8 +216,51 @@
     #panel,body.flip #panel{left:var(--pad);right:var(--pad);width:auto;
       top:auto;bottom:calc(var(--pad) + 40px);transform:none;max-height:46vh}
     #p-q,#t-q{font-size:14px}
-    #p-body,#e-body,#t-body,#s-body{font-size:13.5px;line-height:1.7}
-    #e-body,#t-body,#s-body{min-height:80px}
+    #p-body,#e-body,#t-body{font-size:13.5px;line-height:1.7}
+    #e-body,#t-body{min-height:80px}
     #bar{bottom:auto;top:var(--pad);left:var(--pad)}
     #kicker{opacity:0}
+  }
+
+  /* ── 역할극 공연: 대본 읽는 페이지 ── */
+  .script{max-width:660px;margin:0 auto;padding:7vh var(--pad) 16vh}
+  .script-head{margin-bottom:12vh}
+  .script h1{margin:0 0 18px;font-size:clamp(27px,4.3vw,54px);font-weight:700;
+    letter-spacing:-.038em;line-height:1.14}
+  .script .meta{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
+    color:rgba(var(--ink),.45);line-height:2.1}
+  .script .sep{margin:0 10px;color:rgba(var(--ink),.25)}
+
+  .sc{margin-top:11vh}
+  .sc:first-of-type{margin-top:0}
+  .sc h2{display:flex;align-items:baseline;gap:14px;margin:0 0 34px;
+    font-size:clamp(20px,2.7vw,31px);font-weight:700;letter-spacing:-.03em}
+  .sc h2 span{font-family:var(--mono);font-size:11px;font-weight:400;
+    letter-spacing:.16em;color:rgba(var(--ink),.3)}
+  .sc h2 em{font-style:normal}
+
+  /* 지문 — 물러나 있다 */
+  .dir{margin:26px 0;padding-left:15px;font-size:13.5px;line-height:1.85;
+    color:rgba(var(--ink),.4);border-left:1px solid rgba(var(--ink),.12)}
+
+  /* 대사 — 화자는 작게, 말은 크게 */
+  .say{margin:22px 0}
+  .say .who{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
+    color:rgba(var(--ink),.42);margin-bottom:7px}
+  .say.lead .who{color:rgb(var(--ink))}
+  .say p{margin:0;font-size:16px;line-height:1.9;letter-spacing:-.013em;
+    color:rgba(var(--ink),.88);white-space:pre-wrap}
+  .say.cont{margin-top:-6px}        /* 이어지는 말은 바싹 붙인다 */
+
+  /* 이 페이지의 길잡이는 문서 흐름 안에 둔다 */
+  .pagenav{display:flex;gap:20px;flex-wrap:wrap;margin:0 0 9vh}
+  .sc + .pagenav{margin:11vh 0 0}
+  .pagenav a{font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+    color:rgb(var(--ink));text-decoration:none}
+  .pagenav a.dim{color:rgba(var(--ink),.38)}
+  .pagenav a:hover{text-decoration:underline;text-underline-offset:4px}
+
+  @media (max-width:719px){
+    .script{padding:5vh var(--pad) 12vh}
+    .say p{font-size:15px;line-height:1.85}
   }

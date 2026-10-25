@@ -21,16 +21,6 @@ document.body.insertAdjacentHTML("afterbegin", `
         <div id="p-answers"></div>
       </div>
 
-      <div id="p-edit-show">
-        <div class="fld"><span class="lbl">NOTE</span>
-          <input id="s-note" type="text" placeholder="장면 1 · 2분"></div>
-        <textarea id="s-body" placeholder="무슨 장면인지, 어떤 대사인지."></textarea>
-        <div class="acts">
-          <button class="mono-btn" data-act="add">+ 아래에 추가</button>
-          <button class="mono-btn danger" data-act="del">삭제</button>
-        </div>
-      </div>
-
       <div id="p-edit-talk">
         <div class="fld"><span class="lbl">WHO</span><input id="t-who" type="text" placeholder="이름"></div>
         <div class="fld"><span class="lbl">REL</span><input id="t-rel" type="text" placeholder="대학 동기"></div>
@@ -111,12 +101,13 @@ const DRAFT = "lg.draft";
 
 /* 화면은 둘이다. 내가 쓴 내 이야기(graph), 남이 말한 나(talk).
    타이포 방식은 같지만 talk 에는 점수가 없어 좌우로 밀지 않는다. */
-const mode = ["talk","show"].includes(window.PAGE) ? window.PAGE : "graph";
+/* 역할극 공연은 이어서 읽는 글이라 스크롤 스택을 쓰지 않는다.
+   show.html 은 제 렌더러를 쓰고, 이 엔진은 두 목록만 맡는다. */
+const mode = (window.PAGE === "talk") ? "talk" : "graph";
 const isTalk = () => mode === "talk";
-const isShow = () => mode === "show";
-/* 그래프만 큰 글자가 오른쪽이다. 나머지는 왼쪽에서 크게, 곁글은 오른쪽에. */
+/* 그래프만 큰 글자가 오른쪽이다. 인터뷰는 왼쪽에서 크게, 곁글은 오른쪽에. */
 const isFlip = () => mode !== "graph";
-const SRC = () => isShow() ? (D.scenes ||= []) : (D.interviews ||= []);
+const SRC = () => (D.interviews ||= []);
 
 /* 같은 질문에 달린 답들을 한 장면으로 묶는다.
    질문이 큰 글자를 맡으므로, 같은 문장을 여러 번 세울 수 없다. */
@@ -129,9 +120,7 @@ function groupQ(src){
   });
   return out;
 }
-const list    = () => isTalk() ? groupQ(SRC())
-                    : isShow() ? (D.scenes ||= [])
-                    : D.events;
+const list    = () => isTalk() ? groupQ(SRC()) : D.events;
 const labelOf = e => (isTalk() ? e.q : e.label) || "";
 
 let EV = D.events;
@@ -170,9 +159,7 @@ const ageLabel = y => { const a = ageAt(y); return a===null ? "" : `  ·  ${a}�
 function build(){
   EV = list();
   heroEl.querySelector("h1").textContent =
-    isTalk() ? (D.talkTitle || "지인 인터뷰")
-    : isShow() ? (D.showTitle || "역할극 공연")
-    : (D.name || "");
+    isTalk() ? (D.talkTitle || "지인 인터뷰") : (D.name || "");
   linesEl.innerHTML = "";
   nodes = EV.map((e,i)=>{
     const el = document.createElement("div");
@@ -199,7 +186,6 @@ function build(){
   idx = -1;
   document.body.classList.toggle("flip", isFlip());
   document.body.classList.toggle("talk", isTalk());
-  document.body.classList.toggle("show", isShow());
   // 늘 보인다. 조건을 걸면 정작 찾아야 할 때 안 보인다.
   navEl.classList.add("show");
   if(!EV.length){
@@ -292,11 +278,6 @@ function focus(i){
     pMeta.textContent = [a0.who, a0.relation].filter(Boolean).join("  ·  ");
     pBody.textContent = "";
     renderAnswers(e);
-  }else if(isShow()){
-    pQ.textContent    = "";
-    pMeta.textContent = e.note || "";
-    pBody.textContent = e.body || "";
-    ansEl.innerHTML   = "";
   }else{
     pQ.textContent    = "";
     pMeta.textContent = e.year + ageLabel(e.year);
@@ -310,9 +291,6 @@ function focus(i){
       $("#t-who").value  = a0.who || "";
       $("#t-rel").value  = a0.relation || "";
       renderAnswerFields(e);
-    }else if(isShow()){
-      $("#s-note").value = e.note || "";
-      $("#s-body").value = e.body || "";
     }else{
       $("#e-year").value = e.year;
       $("#e-age").textContent = ageLabel(e.year).replace(/^\s*·\s*/,"");
@@ -441,11 +419,6 @@ function initEdit(){
     delete D.birthYear;
     refreshAges(); markDirty();
   });
-  $("#s-note").addEventListener("input",e=>{
-    EV[idx].note = e.target.value; pMeta.textContent = e.target.value; markDirty(); });
-  $("#s-body").addEventListener("input",e=>{
-    EV[idx].body = e.target.value; markDirty(); });
-
   const whoRel = () => {
     const a0 = EV[idx].answers[0];
     pMeta.textContent = [a0.who, a0.relation].filter(Boolean).join("  ·  ");
@@ -501,9 +474,7 @@ function act(a){
       return;
     }
     const to = Math.max(idx,-1) + 1;      // 비어 있으면 0번에 넣는다
-    EV.splice(to,0, isShow()
-      ? {label:"새 장면", note:"", body:""}
-      : {year:(cur?.year||2000)+1, label:"새 사건", score:0, body:""});
+    EV.splice(to,0,{year:(cur?.year||2000)+1, label:"새 사건", score:0, body:""});
     markDirty(); build(); requestAnimationFrame(()=>jumpTo(to));
   }
   if(a==="del"){
