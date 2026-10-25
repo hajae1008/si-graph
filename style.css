@@ -30,17 +30,17 @@
     width:min(330px,32vw);will-change:opacity;
   }
   /* ── 인터뷰: 질문이 크고 왼쪽, 답변은 작고 오른쪽 ── */
-  body.talk .ev{right:auto;left:var(--pad);transform-origin:0 50%;font-weight:700}
+  body.flip .ev{right:auto;left:var(--pad);transform-origin:0 50%;font-weight:700}
   /* 제목이 질문 목록의 머리말로 붙는다 */
-  body.talk #hero{
+  body.flip #hero{
     justify-content:flex-start;align-items:flex-start;
     padding-top:5.5vh;text-align:left;
   }
-  body.talk #hero h1{
+  body.flip #hero h1{
     font-size:clamp(17px,1.7vw,23px);font-weight:600;
     letter-spacing:.01em;line-height:1.2;color:rgba(var(--ink),.45);
   }
-  body.talk #panel{
+  body.flip #panel{
     left:auto;right:var(--pad);
     top:13vh;transform:none;              /* 질문과 같은 높이에서 시작한다 */
     max-height:80vh;overflow-y:auto;
@@ -75,10 +75,11 @@
     letter-spacing:-.01em;margin:0;white-space:pre-wrap}
 
   /* ── 왼쪽 패널 · 편집 ──────────────────────── */
-  #p-edit,#p-edit-talk{display:none}
+  #p-edit,#p-edit-talk,#p-edit-show{display:none}
   body.edit #p-view{display:none}
-  body.edit:not(.talk) #p-edit{display:block}
-  body.edit.talk  #p-edit-talk{display:block}
+  body.edit:not(.flip) #p-edit{display:block}
+  body.edit.talk       #p-edit-talk{display:block}
+  body.edit.show       #p-edit-show{display:block}
   .fld{display:flex;align-items:center;gap:10px;margin-bottom:14px}
   .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;
     color:rgba(var(--ink),.34);flex:0 0 34px}
@@ -89,6 +90,19 @@
     border-left:2px solid rgba(var(--ink),.5);padding:0 0 0 11px;outline:none;
   }
   #t-q::placeholder{color:rgba(var(--ink),.25)}
+  #s-note{
+    font-family:var(--mono);font-size:11px;letter-spacing:.12em;flex:1;
+    background:none;border:0;border-bottom:1px solid rgba(var(--ink),.16);
+    color:rgb(var(--ink));padding:3px 0;outline:none;
+  }
+  #s-note:focus{border-bottom-color:rgb(var(--ink))}
+  #s-body{
+    width:100%;min-height:150px;resize:vertical;margin-top:4px;
+    font-family:var(--sans);font-size:13.5px;line-height:1.75;letter-spacing:-.01em;
+    color:rgba(var(--ink),.75);background:none;border:0;
+    border-left:1px solid rgba(var(--ink),.14);padding:2px 0 2px 12px;outline:none;
+  }
+  #s-body::placeholder,#s-note::placeholder{color:rgba(var(--ink),.25)}
   #t-who,#t-rel{
     font-family:var(--sans);font-size:14px;letter-spacing:-.01em;flex:1;
     background:none;border:0;border-bottom:1px solid rgba(var(--ink),.16);
@@ -172,8 +186,8 @@
   #nav{position:absolute;right:var(--pad);bottom:var(--pad);
     display:none;gap:20px;align-items:center}
   #nav.show{display:flex}
-  #homebtn{color:rgba(var(--ink),.38)}
-  #modebtn{color:rgb(var(--ink))}
+  #nav .mono-btn{color:rgb(var(--ink))}
+  #nav .mono-btn.dim{color:rgba(var(--ink),.38)}
   #editbtn,#done{
     position:absolute;left:var(--pad);bottom:var(--pad);
     display:none;color:rgb(var(--ink));
@@ -212,12 +226,12 @@
 
   /* ── 모바일 ────────────────────────────────── */
   @media (max-width:719px){
-    body.talk #hero{padding-top:3.5vh}
-    #panel,body.talk #panel{left:var(--pad);right:var(--pad);width:auto;
+    body.flip #hero{padding-top:3.5vh}
+    #panel,body.flip #panel{left:var(--pad);right:var(--pad);width:auto;
       top:auto;bottom:calc(var(--pad) + 40px);transform:none;max-height:46vh}
     #p-q,#t-q{font-size:14px}
-    #p-body,#e-body,#t-body{font-size:13.5px;line-height:1.7}
-    #e-body,#t-body{min-height:80px}
+    #p-body,#e-body,#t-body,#s-body{font-size:13.5px;line-height:1.7}
+    #e-body,#t-body,#s-body{min-height:80px}
     #bar{bottom:auto;top:var(--pad);left:var(--pad)}
     #kicker{opacity:0}
   }

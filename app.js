@@ -21,6 +21,16 @@ document.body.insertAdjacentHTML("afterbegin", `
         <div id="p-answers"></div>
       </div>
 
+      <div id="p-edit-show">
+        <div class="fld"><span class="lbl">NOTE</span>
+          <input id="s-note" type="text" placeholder="장면 1 · 2분"></div>
+        <textarea id="s-body" placeholder="무슨 장면인지, 어떤 대사인지."></textarea>
+        <div class="acts">
+          <button class="mono-btn" data-act="add">+ 아래에 추가</button>
+          <button class="mono-btn danger" data-act="del">삭제</button>
+        </div>
+      </div>
+
       <div id="p-edit-talk">
         <div class="fld"><span class="lbl">WHO</span><input id="t-who" type="text" placeholder="이름"></div>
         <div class="fld"><span class="lbl">REL</span><input id="t-rel" type="text" placeholder="대학 동기"></div>
@@ -56,10 +66,7 @@ document.body.insertAdjacentHTML("afterbegin", `
       <h1></h1>
     </div>
 
-    <div id="nav">
-      <button class="mono-btn" id="homebtn">처음</button>
-      <button class="mono-btn" id="modebtn"></button>
-    </div>
+    <div id="nav"></div>
     <button class="mono-btn" id="editbtn">수정하기 →</button>
     <button class="mono-btn" id="done">← 편집 완료</button>
   </div>
@@ -94,7 +101,7 @@ const scroller=$("#scroller"), linesEl=$("#lines"), panelEl=$("#panel");
 const heroEl=$("#hero");
 const pQ=$("#p-q"), pMeta=$("#p-meta"), pBody=$("#p-body"), ansEl=$("#p-answers");
 const editBtn=$("#editbtn"), statusEl=$("#status");
-const modeBtn=$("#modebtn"), homeBtn=$("#homebtn");
+const navEl=$("#nav");
 
 /* 데이터가 코드 안에 있으므로 배포본에서 고쳐봐야 갈 곳이 없다.
    편집은 내 컴퓨터에서만 연다. */
@@ -104,9 +111,12 @@ const DRAFT = "lg.draft";
 
 /* 화면은 둘이다. 내가 쓴 내 이야기(graph), 남이 말한 나(talk).
    타이포 방식은 같지만 talk 에는 점수가 없어 좌우로 밀지 않는다. */
-const mode = (window.PAGE === "talk") ? "talk" : "graph";
+const mode = ["talk","show"].includes(window.PAGE) ? window.PAGE : "graph";
 const isTalk = () => mode === "talk";
-const SRC = () => (D.interviews ||= []);
+const isShow = () => mode === "show";
+/* 그래프만 큰 글자가 오른쪽이다. 나머지는 왼쪽에서 크게, 곁글은 오른쪽에. */
+const isFlip = () => mode !== "graph";
+const SRC = () => isShow() ? (D.scenes ||= []) : (D.interviews ||= []);
 
 /* 같은 질문에 달린 답들을 한 장면으로 묶는다.
    질문이 큰 글자를 맡으므로, 같은 문장을 여러 번 세울 수 없다. */
@@ -119,7 +129,9 @@ function groupQ(src){
   });
   return out;
 }
-const list    = () => isTalk() ? groupQ(SRC()) : D.events;
+const list    = () => isTalk() ? groupQ(SRC())
+                    : isShow() ? (D.scenes ||= [])
+                    : D.events;
 const labelOf = e => (isTalk() ? e.q : e.label) || "";
 
 let EV = D.events;
@@ -127,7 +139,7 @@ let nodes = [], L = {}, idx = -1, dirty = false;
 
 /* 첫 항목이 초점에 닿기까지 앞에 두는 여백(스크롤 몇 칸인지).
    그래프는 이름이 한 화면을 쓰고, 인터뷰는 제목이 머리말로 붙어 있다. */
-const LEAD = () => isTalk() ? 0 : 1.75;
+const LEAD = () => isFlip() ? 0 : 1.75;
 
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const ease=t=>1-Math.pow(1-t,2.4);
@@ -158,7 +170,9 @@ const ageLabel = y => { const a = ageAt(y); return a===null ? "" : `  ·  ${a}�
 function build(){
   EV = list();
   heroEl.querySelector("h1").textContent =
-    isTalk() ? (D.talkTitle || "사람들이 본 나") : (D.name || "");
+    isTalk() ? (D.talkTitle || "지인 인터뷰")
+    : isShow() ? (D.showTitle || "역할극 소개 공연")
+    : (D.name || "");
   linesEl.innerHTML = "";
   nodes = EV.map((e,i)=>{
     const el = document.createElement("div");
@@ -171,8 +185,8 @@ function build(){
     if (EDIT){
       el.addEventListener("input", ()=>{
         const v = el.textContent.replace(/\n/g," ").trim();
-        if(!isTalk()) EV[i].label = v;
-        else EV[i].answers.forEach(a=>{ a.q = v; });   // 묶음 전체
+        if(isTalk()) EV[i].answers.forEach(a=>{ a.q = v; });  // 묶음 전체
+        else EV[i].label = v;
         markDirty(); fit(el);
       });
       el.addEventListener("keydown", ev=>{
@@ -183,10 +197,11 @@ function build(){
     return el;
   });
   idx = -1;
+  document.body.classList.toggle("flip", isFlip());
   document.body.classList.toggle("talk", isTalk());
-  modeBtn.textContent = isTalk() ? "← 인생 그래프" : "지인 인터뷰 →";
+  document.body.classList.toggle("show", isShow());
   // 늘 보인다. 조건을 걸면 정작 찾아야 할 때 안 보인다.
-  $("#nav").classList.add("show");
+  navEl.classList.add("show");
   if(!EV.length){
     pMeta.textContent = "";
     pBody.textContent = isTalk()
@@ -203,7 +218,7 @@ function build(){
 }
 
 function fit(el){
-  const base = isTalk() ? L.fs*0.60 : L.fs;
+  const base = isFlip() ? L.fs*0.60 : L.fs;
   el.style.fontSize = base + "px";
   const nat = el.offsetWidth;
   if (nat > L.avail) el.style.fontSize = (base * L.avail / nat) + "px";
@@ -213,12 +228,12 @@ function layout(){
   const w=innerWidth, h=innerHeight, narrow = w<720;
   L.step = narrow?250:330;
   L.fs   = clamp(w*(narrow?.105:.076),30,96);
-  L.gap  = L.fs*(isTalk() ? 0.80 : 1.12);
+  L.gap  = L.fs*(isFlip() ? 0.80 : 1.12);
   L.pad  = parseFloat(getComputedStyle(document.documentElement)
              .getPropertyValue("--pad"))||32;
   L.maxOff = Math.min(w*(narrow?.22:.19),250);
   // 인생 그래프는 가운데를 기준 삼지만, 인터뷰는 질문이 위에서 시작한다.
-  L.axis = isTalk() ? h*(narrow ? 0.20 : 0.17)
+  L.axis = isFlip() ? h*(narrow ? 0.20 : 0.17)
                     : h*(narrow ? 0.38 : 0.50);
   const panelBlock = narrow ? 0 : Math.min(330,w*.32)+L.pad+40;
   L.avail = w - L.pad - L.maxOff - panelBlock - 12;
@@ -229,7 +244,7 @@ function layout(){
 }
 
 const offsetOf = s => (1 - (clamp(s,-5,5)+5)/10) * L.maxOff;
-const offsetAt = i => isTalk() ? 0 : offsetOf(EV[i].score);
+const offsetAt = i => isFlip() ? 0 : offsetOf(EV[i].score);
 
 function update(){
   const p = scrollY/L.step - LEAD();
@@ -242,10 +257,10 @@ function update(){
     el.style.visibility="visible";
     const fs = parseFloat(el.style.fontSize) || L.fs;
     el.style.transform=`translate3d(${-offsetAt(i)}px,${y-fs*0.62}px,0)`;
-    const near=ease(clamp(1-d,0,1)), far=clamp(1-d/(isTalk()?6.5:4.6),0,1);
+    const near=ease(clamp(1-d,0,1)), far=clamp(1-d/(isFlip()?6.5:4.6),0,1);
     let alpha = (0.10+0.90*near)*far;
-    if(isTalk()){
-      // 초점 위로 지나간 질문은 제목과 겹치기 전에 완전히 지운다.
+    if(isFlip()){
+      // 초점 위로 지나간 줄은 제목과 겹치기 전에 완전히 지운다.
       const cut = L.axis - L.gap*0.85;
       alpha *= clamp((y - cut)/(L.gap*0.7), 0, 1);
       if(alpha < 0.02){ el.style.visibility="hidden"; continue; }
@@ -260,7 +275,7 @@ function update(){
   panelEl.style.opacity = (EDIT || !EV.length) ? 1
     : ((p>-0.5 && p<EV.length-0.5) ? near : 0);
 
-  const heroA = isTalk() ? 1 : clamp(-(p+0.55)/0.7,0,1);
+  const heroA = isFlip() ? 1 : clamp(-(p+0.55)/0.7,0,1);
   heroEl.style.opacity = heroA;
   // 투명한 카드가 화면 전체를 덮고 클릭을 삼키지 않도록
   heroEl.style.pointerEvents = EDIT ? "auto" : "none";
@@ -277,6 +292,11 @@ function focus(i){
     pMeta.textContent = [a0.who, a0.relation].filter(Boolean).join("  ·  ");
     pBody.textContent = "";
     renderAnswers(e);
+  }else if(isShow()){
+    pQ.textContent    = "";
+    pMeta.textContent = e.note || "";
+    pBody.textContent = e.body || "";
+    ansEl.innerHTML   = "";
   }else{
     pQ.textContent    = "";
     pMeta.textContent = e.year + ageLabel(e.year);
@@ -290,6 +310,9 @@ function focus(i){
       $("#t-who").value  = a0.who || "";
       $("#t-rel").value  = a0.relation || "";
       renderAnswerFields(e);
+    }else if(isShow()){
+      $("#s-note").value = e.note || "";
+      $("#s-body").value = e.body || "";
     }else{
       $("#e-year").value = e.year;
       $("#e-age").textContent = ageLabel(e.year).replace(/^\s*·\s*/,"");
@@ -354,11 +377,26 @@ function jumpTo(i){
 }
 
 /* 다른 페이지로 건너간다. 편집 중이었다면 저쪽도 편집 상태로 연다. */
-modeBtn.addEventListener("click", ()=>{
-  const to = isTalk() ? "graph.html" : "interview.html";
-  location.href = to + (EDIT ? "?edit" : "");
-});
-homeBtn.addEventListener("click", ()=>{ location.href = "index.html"; });
+/* 아래쪽 길잡이: 처음으로, 그리고 지금 아닌 나머지 페이지들로. */
+const PAGES = [
+  { id:"graph", href:"graph.html",     label:"인생 그래프" },
+  { id:"talk",  href:"interview.html", label:"지인 인터뷰" },
+  { id:"show",  href:"show.html",      label:"역할극 소개 공연" },
+];
+function buildNav(){
+  navEl.innerHTML = "";
+  const link = (text, href, dim) => {
+    const b = document.createElement("button");
+    b.className = "mono-btn" + (dim ? " dim" : "");
+    b.textContent = text;
+    b.addEventListener("click", ()=>{ location.href = href; });
+    navEl.appendChild(b);
+  };
+  link("처음", "index.html", true);
+  PAGES.filter(x=>x.id!==mode).forEach(x=>{
+    link(x.label + " →", x.href + (EDIT ? "?edit" : ""), false);
+  });
+}
 
 /* ── 편집 ─────────────────────────────────────────────────── */
 function refreshAges(){
@@ -403,6 +441,11 @@ function initEdit(){
     delete D.birthYear;
     refreshAges(); markDirty();
   });
+  $("#s-note").addEventListener("input",e=>{
+    EV[idx].note = e.target.value; pMeta.textContent = e.target.value; markDirty(); });
+  $("#s-body").addEventListener("input",e=>{
+    EV[idx].body = e.target.value; markDirty(); });
+
   const whoRel = () => {
     const a0 = EV[idx].answers[0];
     pMeta.textContent = [a0.who, a0.relation].filter(Boolean).join("  ·  ");
@@ -458,7 +501,9 @@ function act(a){
       return;
     }
     const to = Math.max(idx,-1) + 1;      // 비어 있으면 0번에 넣는다
-    EV.splice(to,0,{year:(cur?.year||2000)+1, label:"새 사건", score:0, body:""});
+    EV.splice(to,0, isShow()
+      ? {label:"새 장면", note:"", body:""}
+      : {year:(cur?.year||2000)+1, label:"새 사건", score:0, body:""});
     markDirty(); build(); requestAnimationFrame(()=>jumpTo(to));
   }
   if(a==="del"){
@@ -519,6 +564,7 @@ addEventListener("visibilitychange", sync);
 addEventListener("resize", layout);
 
 (function init(){
+  buildNav();
   if(EDIT) initEdit();
   if(!EDIT && LOCAL){
     // 편집은 내 컴퓨터에서만. 배포된 사이트에는 이 버튼이 없다.
