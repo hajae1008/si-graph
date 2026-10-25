@@ -171,7 +171,7 @@ function build(){
   EV = list();
   heroEl.querySelector("h1").textContent =
     isTalk() ? (D.talkTitle || "지인 인터뷰")
-    : isShow() ? (D.showTitle || "역할극 소개 공연")
+    : isShow() ? (D.showTitle || "역할극 공연")
     : (D.name || "");
   linesEl.innerHTML = "";
   nodes = EV.map((e,i)=>{
@@ -381,7 +381,7 @@ function jumpTo(i){
 const PAGES = [
   { id:"graph", href:"graph.html",     label:"인생 그래프" },
   { id:"talk",  href:"interview.html", label:"지인 인터뷰" },
-  { id:"show",  href:"show.html",      label:"역할극 소개 공연" },
+  { id:"show",  href:"show.html",      label:"역할극 공연" },
 ];
 function buildNav(){
   navEl.innerHTML = "";
