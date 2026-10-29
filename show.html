@@ -34,7 +34,12 @@
     return n;
   };
 
-  root.appendChild(nav());
+  // ── 맨 위: 왼쪽은 길잡이, 오른쪽은 전체 대본
+  const bar = el("div","topbar");
+  bar.appendChild(nav());
+  const full = el("button","fullbtn","전체 대본");
+  bar.appendChild(full);
+  root.appendChild(bar);
 
   // ── 머리말
   const head = el("header","script-head");
@@ -99,6 +104,28 @@
   });
 
   root.appendChild(nav());
+
+  /* 전체 대본: 요약을 접고 네 장면의 대본을 이어서 펼친다.
+     장면별 「대본 보기」와 상태가 엇갈리지 않도록 양쪽을 같이 맞춘다. */
+  const sections = [...root.querySelectorAll(".sc")];
+  const setAll = (open) => {
+    sections.forEach(sec => {
+      const body = sec.querySelector(".lines");
+      const btn  = sec.querySelector(".showbtn");
+      body.hidden = !open;
+      btn.textContent = open ? "대본 접기" : "대본 보기";
+      btn.setAttribute("aria-expanded", String(open));
+      btn.classList.toggle("on", open);
+    });
+  };
+  full.addEventListener("click", ()=>{
+    const on = !document.body.classList.contains("fullscript");
+    document.body.classList.toggle("fullscript", on);
+    full.textContent = on ? "요약 보기" : "전체 대본";
+    full.classList.toggle("on", on);
+    setAll(on);
+    scrollTo({top:0, behavior:"instant"});
+  });
 })();
 </script>
 </body>

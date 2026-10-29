@@ -274,6 +274,28 @@
     color:rgba(var(--ink),.92);white-space:pre-wrap}
   .say.cont{margin-top:-4px}
 
+  .topbar{display:flex;justify-content:space-between;align-items:center;
+    gap:18px;flex-wrap:wrap;margin:0 0 9vh}
+  .topbar .pagenav{margin:0}
+  .fullbtn{
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+    background:rgb(var(--ink));color:#fff;border:0;border-radius:999px;
+    padding:10px 20px;cursor:pointer;flex:0 0 auto;
+  }
+  .fullbtn.on{background:none;color:rgb(var(--ink));
+    box-shadow:inset 0 0 0 1px rgba(var(--ink),.3)}
+
+  /* 전체 대본을 볼 때는 곁가지를 치운다 */
+  body.fullscript .logline,
+  body.fullscript .facts,
+  body.fullscript .summary,
+  body.fullscript .quote,
+  body.fullscript .showbtn{display:none}
+  body.fullscript .script-head{margin-bottom:9vh}
+  body.fullscript .sc{margin-top:9vh}
+  body.fullscript .sc h2{margin-bottom:28px}
+  body.fullscript .lines{margin:0;padding:0;border-top:0}
+
   .pagenav{display:flex;gap:20px;flex-wrap:wrap;margin:0 0 9vh}
   .sc + .pagenav{margin:13vh 0 0}
   .pagenav a{font-family:var(--mono);font-size:10px;letter-spacing:.16em;
@@ -283,6 +305,7 @@
 
   @media (max-width:719px){
     .script{padding:5vh var(--pad) 12vh}
+    .topbar{gap:14px}
     .logline{font-size:15.5px}
     .summary,.quote,.showbtn,.lines{padding-left:0;margin-left:0}
     .summary{font-size:15px}
