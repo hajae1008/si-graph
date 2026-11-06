@@ -28,7 +28,8 @@
     const n = el("nav","pagenav");
     [["처음","index.html","dim"],
      ["인생 그래프 →","graph.html",""],
-     ["지인 인터뷰 →","interview.html",""]].forEach(([t,h,c])=>{
+     ["지인 인터뷰 →","interview.html",""],
+     ["정보 지도 →","map.html",""]].forEach(([t,h,c])=>{
       const a = el("a", c, t); a.href = h; n.appendChild(a);
     });
     return n;

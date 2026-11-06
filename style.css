@@ -312,3 +312,36 @@
     .lines{margin-top:26px}
     .say p{font-size:15.5px}
   }
+
+  /* ── 정보 지도 ── */
+  body.mappage{overflow:hidden}
+  #map{position:fixed;inset:0;background:var(--bg)}
+  .map-title{
+    position:fixed;left:var(--pad);top:var(--pad);z-index:500;
+    font-family:var(--mono);font-size:10px;letter-spacing:.2em;
+    color:rgba(var(--ink),.45);pointer-events:none;
+  }
+  .map-nav{
+    position:fixed;left:var(--pad);bottom:var(--pad);z-index:500;
+    margin:0;background:none;
+  }
+  .map-empty{
+    position:fixed;inset:0;z-index:400;display:grid;place-items:center;
+    font-size:15px;color:rgba(var(--ink),.4);
+  }
+  /* 지도 자체의 군더더기를 덜어낸다 */
+  .leaflet-container{background:var(--bg);font-family:var(--mono)}
+  .leaflet-control-attribution{
+    background:rgba(255,255,255,.72)!important;
+    font-size:9px!important;letter-spacing:.04em;color:rgba(var(--ink),.35)!important;
+  }
+  .leaflet-control-attribution a{color:rgba(var(--ink),.45)!important}
+  .leaflet-control-zoom a{
+    border:0!important;background:rgba(255,255,255,.9)!important;
+    color:rgb(var(--ink))!important;font-weight:400!important;
+  }
+  .leaflet-control-zoom{box-shadow:0 0 0 1px rgba(var(--ink),.1)!important;
+    border-radius:4px;overflow:hidden}
+  @media (max-width:719px){
+    .map-nav{gap:14px;font-size:9px}
+  }

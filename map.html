@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>정보 지도 · 99 박주연</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="mappage">
+<div id="map"></div>
+<div class="map-title" id="map-title"></div>
+<nav class="pagenav map-nav" id="map-nav"></nav>
+<div class="map-empty" id="map-empty" hidden></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="data.js"></script>
+<script>
+/* 과제가 글자와 이미지를 금한다. 지도도 라벨 없는 타일을 쓰고,
+   핀에도 설명을 달지 않는다. 장소가 놓인 자리만 남는다. */
+(function(){
+  const L_ = window.L, D = window.LIFE;
+  const M = D?.map || {places:[],tracks:[]};
+  const places = M.places || [], tracks = M.tracks || [];
+
+  document.getElementById("map-title").textContent = D?.mapTitle || "정보 지도";
+
+  const nav = document.getElementById("map-nav");
+  [["처음","index.html","dim"],
+   ["인생 그래프 →","graph.html",""],
+   ["지인 인터뷰 →","interview.html",""],
+   ["역할극 공연 →","show.html",""]].forEach(([t,h,c])=>{
+    const a = document.createElement("a");
+    a.textContent = t; a.href = h; if(c) a.className = c;
+    nav.appendChild(a);
+  });
+
+  if(!places.length && !tracks.length){
+    const e = document.getElementById("map-empty");
+    e.hidden = false;
+    e.textContent = "아직 저장한 장소가 없습니다.";
+    return;
+  }
+
+  const map = L_.map("map", {
+    zoomControl: false,
+    attributionControl: true,
+    scrollWheelZoom: true,
+  });
+  L_.control.zoom({position:"bottomright"}).addTo(map);
+
+  // 라벨 없는 옅은 회색 지도. 글자가 없어야 장소만 남는다.
+  L_.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+    attribution: "Esri, HERE, Garmin, &copy; OpenStreetMap",
+    maxZoom: 16,
+  }).addTo(map);
+
+  const pts = [];
+
+  tracks.forEach(t => {
+    if(!t || t.length < 2) return;
+    L_.polyline(t, {color:"#111", weight:1.6, opacity:.55}).addTo(map);
+    t.forEach(p => pts.push(p));
+  });
+
+  places.forEach(p => {
+    const ll = [p.lat, p.lon];
+    L_.circleMarker(ll, {
+      radius: 5, color:"#111", weight:0, fillColor:"#111", fillOpacity:.85,
+      interactive: false,                 // 눌러도 아무 말도 하지 않는다
+    }).addTo(map);
+    pts.push(ll);
+  });
+
+  map.fitBounds(L_.latLngBounds(pts), {padding:[64,64], maxZoom:14});
+})();
+</script>
+</body>
+</html>

@@ -360,6 +360,7 @@ const PAGES = [
   { id:"graph", href:"graph.html",     label:"인생 그래프" },
   { id:"talk",  href:"interview.html", label:"지인 인터뷰" },
   { id:"show",  href:"show.html",      label:"역할극 공연" },
+  { id:"map",   href:"map.html",       label:"정보 지도" },
 ];
 function buildNav(){
   navEl.innerHTML = "";
