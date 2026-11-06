@@ -11,14 +11,19 @@ window.LIFE = {
 
   /* 정보 지도 — 글자 없이 장소만으로 드러낸다.
      places: 점 하나가 장소. tracks: 이어 그리는 궤적. */
+  /* 정보 지도 — 글자 없이 장소만으로 드러낸다.
+     점에 손을 올리면 그 자리에서 찍은 것이 뜬다.
+     고양이 둘은 집이라, 좌표를 어린이대공원역으로 옮겼다. */
   mapTitle: "정보 지도",
   map: {
     places: [
-      // { lat:37.5884, lon:127.0062 },
+      { lat:37.548455,  lon:127.047128,  img:"media/cafe.jpg" },
+      { lat:37.5473027, lon:127.0742503, video:"media/cat-a.mp4",   poster:"media/cat-a.jpg" },
+      { lat:37.5473027, lon:127.0742503, video:"media/cat-b.mp4",   poster:"media/cat-b.jpg" },
+      { lat:37.5901,    lon:127.0173,    video:"media/busking.mp4", poster:"media/busking.jpg" },
+      { lat:37.5901,    lon:127.0171,    video:"media/facade.mp4",  poster:"media/facade.jpg" },
     ],
-    tracks: [
-      // [[37.58,127.00],[37.57,126.99]],
-    ],
+    tracks: [],
   },
 
   /* 역할극 공연 — 요약(summary)·인용(quote)이 앞에 서고,

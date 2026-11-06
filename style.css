@@ -317,18 +317,36 @@
   body.mappage{overflow:hidden}
   #map{position:fixed;inset:0;background:var(--bg)}
   .map-title{
-    position:fixed;left:var(--pad);top:var(--pad);z-index:500;
+    position:fixed;left:var(--pad);top:var(--pad);z-index:600;
     font-family:var(--mono);font-size:10px;letter-spacing:.2em;
     color:rgba(var(--ink),.45);pointer-events:none;
   }
-  .map-nav{
-    position:fixed;left:var(--pad);bottom:var(--pad);z-index:500;
-    margin:0;background:none;
-  }
+  .map-nav{position:fixed;left:var(--pad);bottom:var(--pad);z-index:600;margin:0}
   .map-empty{
     position:fixed;inset:0;z-index:400;display:grid;place-items:center;
     font-size:15px;color:rgba(var(--ink),.4);
   }
+
+  /* 점 */
+  .pin{background:none;border:0}
+  .pin i{
+    display:block;width:11px;height:11px;margin:5.5px;border-radius:50%;
+    background:rgb(var(--ink));cursor:pointer;
+    transition:transform .18s ease, box-shadow .18s ease;
+  }
+  .pin:hover i,.pin.on i{box-shadow:0 0 0 5px rgba(var(--ink),.14)}
+
+  /* 손을 올리면 뜨는 것 */
+  .peek{
+    position:fixed;left:0;top:0;z-index:700;pointer-events:none;
+    width:clamp(150px,17vw,220px);
+    background:var(--bg);padding:6px;
+    box-shadow:0 10px 36px rgba(0,0,0,.17),0 0 0 1px rgba(var(--ink),.07);
+  }
+  .peek video,.peek img{display:block;width:100%;height:auto;max-height:62vh;
+    aspect-ratio:3/4;                 /* 받기 전에도 자리를 차지해 위치가 빗나가지 않는다 */
+    object-fit:cover;background:rgba(var(--ink),.05)}
+
   /* 지도 자체의 군더더기를 덜어낸다 */
   .leaflet-container{background:var(--bg);font-family:var(--mono)}
   .leaflet-control-attribution{
@@ -343,5 +361,6 @@
   .leaflet-control-zoom{box-shadow:0 0 0 1px rgba(var(--ink),.1)!important;
     border-radius:4px;overflow:hidden}
   @media (max-width:719px){
-    .map-nav{gap:14px;font-size:9px}
+    .map-nav{gap:14px}
+    .peek{width:min(46vw,200px)}
   }
