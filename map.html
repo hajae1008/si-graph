@@ -51,19 +51,28 @@
   }).addTo(map);
 
   const pts = [];
-  tracks.forEach(t => {
-    if(!t || t.length < 2) return;
-    L_.polyline(t, {color:"#111", weight:1.6, opacity:.55}).addTo(map);
-    t.forEach(p => pts.push(p));
-  });
 
   const PIN = 30;              // 과녁. 점 자체는 11px 이지만 손이 닿는 넓이는 이만큼.
   const peek = document.getElementById("peek");
   let shown = null;
 
+  let cycle = null;
+  function stopCycle(){ if(cycle){ clearInterval(cycle); cycle = null; } }
+
   function fill(p){
     peek.innerHTML = "";
-    if(p.video){
+    peek.classList.remove("text");
+    stopCycle();
+    if(p.gallery && p.gallery.length){      // 사진 여러 장 — 머무는 동안 넘어간다
+      const i = document.createElement("img");
+      i.addEventListener("load", place);
+      let n = 0;
+      i.src = p.gallery[0];
+      peek.appendChild(i);
+      if(p.gallery.length > 1){
+        cycle = setInterval(()=>{ n = (n+1) % p.gallery.length; i.src = p.gallery[n]; }, 2000);
+      }
+    }else if(p.video){
       const v = document.createElement("video");
       v.src = p.video; if(p.poster) v.poster = p.poster;
       v.muted = true; v.loop = true; v.playsInline = true; v.autoplay = true;
@@ -79,9 +88,38 @@
     }
   }
 
+  /* 궤적에는 보여줄 장면이 없다. 대신 이름과 한 줄을 띄운다. */
+  function fillText(t){
+    peek.innerHTML = "";
+    peek.classList.add("text");
+    stopCycle();
+    const h = document.createElement("b"); h.textContent = t.label || "";
+    const p2 = document.createElement("p"); p2.textContent = t.note || "";
+    peek.append(h, p2);
+  }
+
+  /* 많이 걸은 길. 선은 얇아서 손이 잘 닿지 않으므로,
+     보이지 않는 굵은 선을 겹쳐 두고 그쪽으로 받는다. */
+  tracks.forEach(t => {
+    const line = t.pts || t;
+    if(!line || line.length < 2) return;
+    L_.polyline(line, {color:"#111", weight:2.4, opacity:.9, interactive:false}).addTo(map);
+    const hit = L_.polyline(line, {color:"#111", weight:16, opacity:0}).addTo(map);
+    line.forEach(p => pts.push(p));
+    if(!t.label && !t.note) return;
+    const show = () => { fillText(t); peek.hidden = false; at = null; place(); };
+    const hide = () => { peek.hidden = true; peek.innerHTML = ""; stopCycle(); };
+    hit.on("mouseover", show);
+    hit.on("mousemove", e => { at = map.latLngToContainerPoint(e.latlng); place(); });
+    hit.on("mouseout", hide);
+    hit.on("click", e => { at = map.latLngToContainerPoint(e.latlng); show(); });
+  });
+
   const markers = places.map(p => {
     const m = L_.marker([p.lat, p.lon], {
-      icon: L_.divIcon({className:"pin", html:"<i></i>", iconSize:[PIN,PIN], iconAnchor:[PIN/2,PIN/2]}),
+      icon: L_.divIcon({
+        className: "pin" + (p.img||p.video||p.gallery ? "" : " bare"),
+        html:"<i></i>", iconSize:[PIN,PIN], iconAnchor:[PIN/2,PIN/2]}),
       keyboard: true,
     }).addTo(map);
     m._place = p;
@@ -91,7 +129,8 @@
       if(shown === m) return;
       shown = m;
       markers.forEach(x => x.getElement()?.classList.toggle("on", x === m));
-      fill(p);
+      if(!(p.img || p.video || p.gallery)) return;   // 보여줄 것이 없는 자리
+      at = null; fill(p);
       peek.hidden = false;
       place();
     };
@@ -99,7 +138,7 @@
       if(shown !== m) return;
       shown = null;
       m.getElement()?.classList.remove("on");
-      peek.hidden = true; peek.innerHTML = "";
+      peek.hidden = true; peek.innerHTML = ""; stopCycle();
     };
 
     m.on("mouseover", open);
@@ -110,9 +149,10 @@
   });
 
   /* 미리보기를 점 옆에 붙이되 화면 밖으로 나가지 않게 민다 */
+  let at = null;                       // 선 위에서는 커서를 따라간다
   function place(){
-    if(!shown) return;
-    const pt = map.latLngToContainerPoint(shown.getLatLng());
+    if(!shown && !at) return;
+    const pt = at || map.latLngToContainerPoint(shown.getLatLng());
     const w = peek.offsetWidth, h = peek.offsetHeight, pad = 14;
     let x = pt.x + 18, y = pt.y - h/2;
     if(x + w + pad > innerWidth)  x = pt.x - 18 - w;
@@ -129,7 +169,7 @@
     const seen = [];
     markers.forEach(m => {
       const pt = map.latLngToContainerPoint(m.getLatLng());
-      const g = seen.find(s => s.pt.distanceTo(pt) < PIN);
+      const g = seen.find(s => s.pt.distanceTo(pt) < PIN * 1.4);
       if(g){ g.list.push(m); } else { seen.push({pt, list:[m]}); }
     });
     seen.forEach(g => {
@@ -137,8 +177,11 @@
         const el = m.getElement();
         if(!el) return;
         let dx = 0, dy = 0;
-        if(g.list.length > 1){
-          const a = (Math.PI * 2 * i) / g.list.length - Math.PI/2, r = 15;
+        const n = g.list.length;
+        if(n > 1){
+          // 과녁이 서로를 덮지 않을 만큼 벌린다. 점이 늘수록 원도 커져야 한다.
+          const r = Math.max(16, (PIN * 1.25) / (2 * Math.sin(Math.PI / n)));
+          const a = (Math.PI * 2 * i) / n - Math.PI/2;
           dx = Math.cos(a) * r; dy = Math.sin(a) * r;
         }
         el.style.marginLeft = (-PIN/2 + dx).toFixed(1) + "px";
