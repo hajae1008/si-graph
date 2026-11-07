@@ -41,12 +41,13 @@
     return;
   }
 
-  const map = L_.map("map", {zoomControl:false, scrollWheelZoom:true});
+  // 이 바탕 지도는 서울에서 z13 까지만 있다. 그 위로 올라가면 빈 타일이 나온다.
+  const map = L_.map("map", {zoomControl:false, scrollWheelZoom:true, maxZoom:13});
   L_.control.zoom({position:"bottomright"}).addTo(map);
 
   // 라벨 없는 옅은 회색 지도. 글자가 없어야 장소만 남는다.
   L_.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
-    attribution: "Esri, HERE, Garmin, &copy; OpenStreetMap", maxZoom: 16,
+    attribution: "Esri, HERE, Garmin, &copy; OpenStreetMap", maxZoom: 13,
   }).addTo(map);
 
   const pts = [];
@@ -139,7 +140,7 @@
   }
 
   map.on("zoomend moveend", () => { fan(); place(); });
-  map.fitBounds(L_.latLngBounds(pts), {padding:[80,80], maxZoom:14});
+  map.fitBounds(L_.latLngBounds(pts), {padding:[80,80], maxZoom:13});
   requestAnimationFrame(fan);
 })();
 </script>
