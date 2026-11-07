@@ -57,6 +57,7 @@
     t.forEach(p => pts.push(p));
   });
 
+  const PIN = 30;              // 과녁. 점 자체는 11px 이지만 손이 닿는 넓이는 이만큼.
   const peek = document.getElementById("peek");
   let shown = null;
 
@@ -80,7 +81,7 @@
 
   const markers = places.map(p => {
     const m = L_.marker([p.lat, p.lon], {
-      icon: L_.divIcon({className:"pin", html:"<i></i>", iconSize:[22,22], iconAnchor:[11,11]}),
+      icon: L_.divIcon({className:"pin", html:"<i></i>", iconSize:[PIN,PIN], iconAnchor:[PIN/2,PIN/2]}),
       keyboard: true,
     }).addTo(map);
     m._place = p;
@@ -120,21 +121,28 @@
     peek.style.transform = `translate3d(${Math.round(x)}px,${Math.round(y)}px,0)`;
   }
 
-  /* 같은 자리에 겹친 점은 좌표를 속이지 않고 화면에서만 펼친다 */
+  /* 같은 자리에 겹친 점은 좌표를 속이지 않고 화면에서만 펼친다.
+     옮길 때는 점만이 아니라 손이 닿는 영역째 옮긴다. 안쪽만 옮기면
+     보이는 자리와 눌리는 자리가 어긋나 아무리 올려도 반응하지 않는다.
+     Leaflet 이 위치에 transform 을 쓰므로, 비켜 세우는 일은 margin 으로 한다. */
   function fan(){
     const seen = [];
     markers.forEach(m => {
       const pt = map.latLngToContainerPoint(m.getLatLng());
-      const g = seen.find(s => s.pt.distanceTo(pt) < 26);
+      const g = seen.find(s => s.pt.distanceTo(pt) < PIN);
       if(g){ g.list.push(m); } else { seen.push({pt, list:[m]}); }
     });
     seen.forEach(g => {
       g.list.forEach((m, i) => {
-        const el = m.getElement()?.firstElementChild;
+        const el = m.getElement();
         if(!el) return;
-        if(g.list.length === 1){ el.style.transform = ""; return; }
-        const a = (Math.PI * 2 * i) / g.list.length - Math.PI/2, r = 15;
-        el.style.transform = `translate(${(Math.cos(a)*r).toFixed(1)}px,${(Math.sin(a)*r).toFixed(1)}px)`;
+        let dx = 0, dy = 0;
+        if(g.list.length > 1){
+          const a = (Math.PI * 2 * i) / g.list.length - Math.PI/2, r = 15;
+          dx = Math.cos(a) * r; dy = Math.sin(a) * r;
+        }
+        el.style.marginLeft = (-PIN/2 + dx).toFixed(1) + "px";
+        el.style.marginTop  = (-PIN/2 + dy).toFixed(1) + "px";
       });
     });
   }

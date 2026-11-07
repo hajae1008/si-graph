@@ -6,6 +6,9 @@
     --sans:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  /* hidden 을 건 요소에 display 를 주면 내 규칙이 이겨서 숨지 않는다.
+     투명한 판이 화면을 덮고 마우스를 가로채는 일이 여기서 났다. */
+  [hidden]{display:none!important}
   html,body{background:var(--bg)}
   body{
     margin:0;font-family:var(--sans);color:rgb(var(--ink));
@@ -330,7 +333,7 @@
   /* 점 */
   .pin{background:none;border:0}
   .pin i{
-    display:block;width:11px;height:11px;margin:5.5px;border-radius:50%;
+    display:block;width:11px;height:11px;margin:9.5px;border-radius:50%;
     background:rgb(var(--ink));cursor:pointer;
     transition:transform .18s ease, box-shadow .18s ease;
   }
